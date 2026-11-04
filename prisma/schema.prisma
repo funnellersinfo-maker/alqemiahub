@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ALQEMIRA HUB — Esquema de la plataforma
+// Miembros, muro social, classroom, gamificación y admin
+// ============================================================
+
+model User {
+  id               String    @id @default(cuid())
+  name             String
+  email            String    @unique
+  passwordHash     String? // null si solo tiene cuenta Google
+  googleId         String?   @unique
+  image            String? // dataURL de avatar subido
+  avatarColor      String? // color sólido de avatar preset
+  role             String    @default("USER") // USER | ADMIN
+  status           String    @default("ACTIVE") // ACTIVE | BLOCKED
+  headline         String? // "Ecommerce · Moda"
+  bio              String?
+  goal             String? // objetivo principal
+  profileCompleted Boolean   @default(false)
+  xp               Int       @default(0)
+  lastActiveAt     DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  posts        Post[]
+  comments     Comment[]
+  likes        Like[]
+  progress     LessonProgress[]
+  achievements Achievement[]
+
+  @@index([xp])
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  userId     String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  image     String? // dataURL de imagen adjunta
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments Comment[]
+  likes    Like[]
+
+  @@index([createdAt])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([postId])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  level       String // Principiante | Intermedio | Avanzado
+  cover       String // /images/courses/x.png
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  lessons Lesson[]
+}
+
+model Lesson {
+  id          String @id @default(cuid())
+  courseId    String
+  course      Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  videoUrl    String?
+  durationMin Int    @default(10)
+  order       Int    @default(0)
+
+  progress LessonProgress[]
+
+  @@index([courseId])
+}
+
+model LessonProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  completedAt DateTime @default(now())
+
+  @@unique([userId, lessonId])
+}
+
+model Achievement {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String // clave de ACHIEVEMENTS en lib/gamification
+  createdAt DateTime @default(now())
+
+  @@unique([userId, code])
+}
