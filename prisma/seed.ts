@@ -43,7 +43,16 @@ async function main() {
   await db.course.deleteMany()
 
   console.log("Creando programas de formación...")
-  const courseData = [
+  type CourseSeed = {
+    slug: string
+    title: string
+    description: string
+    level: string
+    cover: string
+    order: number
+    lessons: [string, string, number][]
+  }
+  const courseData: CourseSeed[] = [
     {
       slug: "ecommerce-desde-cero",
       title: "Ecommerce desde Cero",

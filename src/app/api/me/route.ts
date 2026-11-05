@@ -49,7 +49,7 @@ export async function PATCH(req: NextRequest) {
     const user = await requireUser()
     const body = await req.json().catch(() => ({}))
 
-    const data: Record<string, string | boolean> = {}
+    const data: Record<string, string | boolean | null> = {}
 
     if (typeof body.name === "string") {
       const name = body.name.trim()
@@ -71,6 +71,8 @@ export async function PATCH(req: NextRequest) {
     if (typeof body.avatarColor === "string") {
       if (!/^#[0-9a-fA-F]{6}$/.test(body.avatarColor)) return errorResponse(400, "Color de avatar inválido")
       data.avatarColor = body.avatarColor
+      // Si el usuario elige un color y no envía foto nueva, la foto se limpia
+      if (typeof body.image !== "string") data.image = null
     }
     if (typeof body.image === "string") {
       if (!body.image.startsWith("data:image/")) return errorResponse(400, "Formato de imagen inválido")

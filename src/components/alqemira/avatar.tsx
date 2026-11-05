@@ -57,7 +57,7 @@ export function UserAvatar({
 
   if (user.image) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
+       
       <img
         src={user.image}
         alt={`Avatar de ${user.name}`}
