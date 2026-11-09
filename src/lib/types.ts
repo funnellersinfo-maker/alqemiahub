@@ -1,5 +1,5 @@
 // ============================================================
-// ALQEMIRA HUB — Contratos de tipos compartidos (frontend + API)
+// ALQEMIA HUB — Contratos de tipos compartidos (frontend + API)
 // ============================================================
 
 export type UserStatus = "ACTIVE" | "BLOCKED"

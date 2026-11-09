@@ -1,5 +1,5 @@
 // ============================================================
-// ALQEMIRA HUB — Motor de gamificación (lado servidor)
+// ALQEMIA HUB — Motor de gamificación (lado servidor)
 // XP, niveles, logros y recompensas. Los cálculos puros viven
 // en @/lib/levels (importable en cliente); aquí se persisten.
 // ============================================================

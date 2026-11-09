@@ -1,5 +1,5 @@
 // ============================================================
-// ALQEMIRA HUB — Helper del muro social (mapeo post BD → FeedPost)
+// ALQEMIA HUB — Helper del muro social (mapeo post BD → FeedPost)
 // Compartido por /api/feed, /api/posts y /api/admin/posts
 // ============================================================
 

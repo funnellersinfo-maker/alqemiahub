@@ -17,6 +17,11 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+  /* Oro líquido ALQEMIA (extraído del logo) */
+  --color-gold-bright: var(--gold-bright);
+  --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
+  --color-gold-shadow: var(--gold-shadow);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -44,73 +49,87 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* ============================================================
+   ALQEMIA — Identidad de marca
+   Negro puro (#000) + oro líquido extraído del logo:
+   bright #F7D97A · mid #D9A441 · deep #B87A2A · shadow #8C5A1E
+   La app es lujo oscuro por definición de marca (dark por defecto).
+   ============================================================ */
+
 :root {
   --radius: 0.75rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.962 0.042 90);
-  --accent-foreground: oklch(0.42 0.09 70);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.75 0.14 78);
-  --chart-1: oklch(0.769 0.188 70.08);
-  --chart-2: oklch(0.705 0.14 82.5);
-  --chart-3: oklch(0.556 0 0);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.646 0.222 41.116);
-  --sidebar: oklch(0.145 0 0);
-  --sidebar-foreground: oklch(0.9 0 0);
-  --sidebar-primary: oklch(0.769 0.188 70.08);
-  --sidebar-primary-foreground: oklch(0.145 0 0);
-  --sidebar-accent: oklch(0.205 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.75 0.14 78);
+
+  /* Oro del logo */
+  --gold-bright: #f7d97a;
+  --gold: #d9a441;
+  --gold-deep: #b87a2a;
+  --gold-shadow: #8c5a1e;
+
+  --background: #070707;
+  --foreground: #f4f1e8;
+  --card: #111110;
+  --card-foreground: #f4f1e8;
+  --popover: #131312;
+  --popover-foreground: #f4f1e8;
+  --primary: #d9a441;
+  --primary-foreground: #0a0902;
+  --secondary: #1b1a17;
+  --secondary-foreground: #f4f1e8;
+  --muted: #1b1a17;
+  --muted-foreground: #a39f92;
+  --accent: #221c11;
+  --accent-foreground: #f7d97a;
+  --destructive: #e5484d;
+  --border: #ffffff14;
+  --input: #ffffff1f;
+  --ring: #d9a441;
+  --chart-1: #d9a441;
+  --chart-2: #f7d97a;
+  --chart-3: #b87a2a;
+  --chart-4: #8c5a1e;
+  --chart-5: #6e4715;
+  --sidebar: #070707;
+  --sidebar-foreground: #f4f1e8;
+  --sidebar-primary: #d9a441;
+  --sidebar-primary-foreground: #0a0902;
+  --sidebar-accent: #1b1a17;
+  --sidebar-accent-foreground: #f4f1e8;
+  --sidebar-border: #ffffff10;
+  --sidebar-ring: #d9a441;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.769 0.188 70.08);
-  --chart-2: oklch(0.705 0.14 82.5);
-  --chart-3: oklch(0.646 0.222 41.116);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.769 0.188 70.08);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #070707;
+  --foreground: #f4f1e8;
+  --card: #111110;
+  --card-foreground: #f4f1e8;
+  --popover: #131312;
+  --popover-foreground: #f4f1e8;
+  --primary: #d9a441;
+  --primary-foreground: #0a0902;
+  --secondary: #1b1a17;
+  --secondary-foreground: #f4f1e8;
+  --muted: #1b1a17;
+  --muted-foreground: #a39f92;
+  --accent: #221c11;
+  --accent-foreground: #f7d97a;
+  --destructive: #e5484d;
+  --border: #ffffff14;
+  --input: #ffffff1f;
+  --ring: #d9a441;
+  --chart-1: #d9a441;
+  --chart-2: #f7d97a;
+  --chart-3: #b87a2a;
+  --chart-4: #8c5a1e;
+  --chart-5: #6e4715;
+  --sidebar: #070707;
+  --sidebar-foreground: #f4f1e8;
+  --sidebar-primary: #d9a441;
+  --sidebar-primary-foreground: #0a0902;
+  --sidebar-accent: #1b1a17;
+  --sidebar-accent-foreground: #f4f1e8;
+  --sidebar-border: #ffffff10;
+  --sidebar-ring: #d9a441;
 }
 
 @layer base {
@@ -122,19 +141,44 @@
   }
   html {
     -webkit-tap-highlight-color: transparent;
+    color-scheme: dark;
+  }
+  ::selection {
+    background: #d9a44133;
   }
 }
 
-/* ============================================================
-   ALQEMIRA HUB — Utilidades y animaciones de marca
-   ============================================================ */
+/* ------------------------------------------------------------
+   Utilidades de marca ALQEMIA
+   ------------------------------------------------------------ */
 
-/* Texto con degradado dorado (marca ALQEMIRA) */
+/* Texto con degradado de oro líquido (como el logo) */
 .gold-text {
-  background: linear-gradient(135deg, #f59e0b, #fbbf24 45%, #d97706);
+  background: linear-gradient(135deg, #f7d97a, #d9a441 48%, #b87a2a);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* Wordmark institucional: mayúsculas con tracking amplio (logo) */
+.brand-wordmark {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.38em;
+  font-weight: 500;
+  color: var(--gold-bright);
+}
+
+/* Borde dorado sutil para tarjetas destacadas */
+.gold-border {
+  border-image: linear-gradient(135deg, #8c5a1e55, #d9a44155, #f7d97a33) 1;
+}
+
+/* Brillo dorado radial de fondo para héroes */
+.gold-radial {
+  background:
+    radial-gradient(60% 50% at 50% 0%, #d9a4411a 0%, transparent 70%),
+    #070707;
 }
 
 /* Entrada de toasts de gamificación */
@@ -183,7 +227,12 @@
   animation: logo-glow 2.2s ease-in-out infinite;
 }
 
-/* Scrollbar discreta y elegante */
+/* Barras y separadores con sheen dorado */
+.gold-sheen {
+  background: linear-gradient(90deg, #8c5a1e, #d9a441, #f7d97a, #d9a441, #8c5a1e);
+}
+
+/* Scrollbar discreta y elegante (tema oscuro) */
 .thin-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -192,11 +241,11 @@
   background: transparent;
 }
 .thin-scrollbar::-webkit-scrollbar-thumb {
-  background: oklch(0.87 0 0);
+  background: #ffffff26;
   border-radius: 999px;
 }
 .thin-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.78 0 0);
+  background: #d9a44159;
 }
 
 .no-scrollbar::-webkit-scrollbar {

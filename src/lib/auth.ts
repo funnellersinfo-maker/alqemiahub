@@ -1,5 +1,5 @@
 // ============================================================
-// ALQEMIRA HUB — NextAuth (credenciales + Google OAuth opcional)
+// ALQEMIA HUB — NextAuth (credenciales + Google OAuth opcional)
 // ============================================================
 
 import { getServerSession, NextAuthOptions } from "next-auth"
@@ -40,7 +40,7 @@ function toSessionUser(user: {
 
 const providers: NextAuthOptions["providers"] = [
   CredentialsProvider({
-    name: "ALQEMIRA",
+    name: "ALQEMIA",
     credentials: {
       email: { label: "Email", type: "email" },
       password: { label: "Contraseña", type: "password" },
@@ -80,7 +80,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 export const authOptions: NextAuthOptions = {
   providers,
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 30 },
-  secret: process.env.NEXTAUTH_SECRET ?? "alqemira-hub-dev-secret",
+  secret: process.env.NEXTAUTH_SECRET ?? "alqemia-hub-dev-secret",
   callbacks: {
     async jwt({ token, user }) {
       if (user) {

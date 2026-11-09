@@ -1,5 +1,5 @@
 // ============================================================
-// ALQEMIRA HUB — Seed de la base de datos
+// ALQEMIA HUB — Seed de la base de datos
 // Ejecutar con: bun prisma/seed.ts
 // ============================================================
 
@@ -29,7 +29,7 @@ function daysAgo(d: number, extraH = 0): Date {
   return new Date(Date.now() - d * 24 * 3600_000 - extraH * 3600_000)
 }
 
-const DEMO_PASSWORD = hashPassword("alqemira123")
+const DEMO_PASSWORD = hashPassword("alqemia123")
 
 async function main() {
   console.log("Limpiando datos previos...")
@@ -62,7 +62,7 @@ async function main() {
       cover: "/images/courses/ecommerce.png",
       order: 1,
       lessons: [
-        ["Bienvenida y mapa del programa", "Cómo funciona ALQEMIRA y cómo sacarle el máximo provecho a este programa.", 8],
+        ["Bienvenida y mapa del programa", "Cómo funciona ALQEMIA y cómo sacarle el máximo provecho a este programa.", 8],
         ["Elegir tu producto y validar demanda", "Método simple para elegir un producto que la gente ya está comprando.", 14],
         ["Montar tu tienda: fundamentos de conversión", "Estructura, fichas y velocidad: todo lo que debe estar perfecto antes de pagar tráfico.", 16],
         ["Pasarelas de pago y logística básica", "Cómo cobrar sin dolores de cabeza y entregar a tiempo.", 12],
@@ -121,7 +121,7 @@ async function main() {
       slug: "marketing-de-contenidos",
       title: "Marketing de Contenidos",
       description:
-        "El sistema de contenido de ALQEMIRA: 90 días de plan, reels con guion y analítica para crecer con constancia.",
+        "El sistema de contenido de ALQEMIA: 90 días de plan, reels con guion y analítica para crecer con constancia.",
       level: "Principiante",
       cover: "/images/courses/contenidos.png",
       order: 5,
@@ -185,17 +185,17 @@ async function main() {
 
   console.log("Creando miembros...")
   const users = [
-    { name: "Valeria Ríos", email: "valeria@alqemira.com", headline: "Ecommerce · Moda", avatarColor: "#d97706", xp: 1240, bio: "Fundé mi marca de moda hace 2 años. Aquí estoy para escalar con sistemas y sin improvisar.", goal: "Llevar mi tienda a 7 cifras", createdAt: daysAgo(13, 5), lastActiveAt: hoursAgo(1) },
-    { name: "Diego Márquez", email: "diego@alqemira.com", headline: "Tráfico · Meta Ads", avatarColor: "#059669", xp: 2110, bio: "Especialista en tráfico. Ayudo a tiendas a escalar con creatividades que funcionan.", goal: "Armar mi agencia de tráfico", createdAt: daysAgo(12, 2), lastActiveAt: hoursAgo(3) },
-    { name: "Camila Torres", email: "camila@alqemira.com", headline: "Marketing de contenidos", avatarColor: "#e11d48", xp: 660, bio: "Creo contenido para marcas de belleza. En camino de convertir mi perfil en un negocio.", goal: "Duplicar mi comunidad en 90 días", createdAt: daysAgo(11, 8), lastActiveAt: hoursAgo(6) },
-    { name: "Sebastián Vega", email: "sebastian@alqemira.com", headline: "Ecommerce · Dropsi", avatarColor: "#0d9488", xp: 340, bio: "Primera tienda en marcha. Documento todo el proceso, incluidos los fracasos.", goal: "Hacer mi primera venta", createdAt: daysAgo(10, 1), lastActiveAt: hoursAgo(12) },
-    { name: "Lucía Fernández", email: "lucia@alqemira.com", headline: "Copywriting", avatarColor: "#ea580c", xp: 980, bio: "Copywriter freelance. Obsesionada con emails que la gente de verdad abre.", goal: "Llenar mi agenda de clientes", createdAt: daysAgo(9, 3), lastActiveAt: hoursAgo(20) },
-    { name: "Mateo Rodríguez", email: "mateo@alqemira.com", headline: "Branding personal", avatarColor: "#65a30d", xp: 180, bio: "Vengo del mundo corporativo y estoy construyendo mi marca como consultor.", goal: "Conseguir 3 clientes de branding", createdAt: daysAgo(7, 6), lastActiveAt: hoursAgo(30) },
-    { name: "Sofía Herrera", email: "sofia@alqemira.com", headline: "Ecommerce · Belleza", avatarColor: "#c026d3", xp: 1720, bio: "Tienda de skincare. Debilidad por los números y el margen antes que por la vanidad.", goal: "Escalar a 100 órdenes diarias", createdAt: daysAgo(6, 4), lastActiveAt: hoursAgo(2) },
-    { name: "Daniel Ortiz", email: "daniel@alqemira.com", headline: "Afiliación digital", avatarColor: "#a8a29e", xp: 520, bio: "Aprendiendo el modelo de afiliados con contenido orgánico. Cero presupuesto.", goal: "Mi primera comisión recurrente", createdAt: daysAgo(5, 9), lastActiveAt: hoursAgo(40) },
-    { name: "Isabela Moreno", email: "isabela@alqemira.com", headline: "Emprendedora digital", avatarColor: "#059669", xp: 110, bio: "Empezando desde cero. Vengo del mundo tradicional y quiero mi primer negocio online.", goal: "Aprender lo básico y lanzar", createdAt: daysAgo(2, 2), lastActiveAt: hoursAgo(8) },
-    { name: "Tomás Caballero", email: "tomas@alqemira.com", headline: "Restaurante → Digital", avatarColor: "#d97706", xp: 280, bio: "Dueño de restaurante digitalizando el negocio. Pide delivery el que esté cerca.", goal: "Digitalizar mi restaurante", createdAt: daysAgo(4, 7), lastActiveAt: hoursAgo(26) },
-    { name: "Carlos Espinoza", email: "carlos@alqemira.com", headline: "Marketing digital", avatarColor: "#e11d48", xp: 300, bio: "", goal: "", createdAt: daysAgo(3, 1), lastActiveAt: daysAgo(1, 6), status: "BLOCKED" },
+    { name: "Valeria Ríos", email: "valeria@alqemia.com", headline: "Ecommerce · Moda", avatarColor: "#d97706", xp: 1240, bio: "Fundé mi marca de moda hace 2 años. Aquí estoy para escalar con sistemas y sin improvisar.", goal: "Llevar mi tienda a 7 cifras", createdAt: daysAgo(13, 5), lastActiveAt: hoursAgo(1) },
+    { name: "Diego Márquez", email: "diego@alqemia.com", headline: "Tráfico · Meta Ads", avatarColor: "#059669", xp: 2110, bio: "Especialista en tráfico. Ayudo a tiendas a escalar con creatividades que funcionan.", goal: "Armar mi agencia de tráfico", createdAt: daysAgo(12, 2), lastActiveAt: hoursAgo(3) },
+    { name: "Camila Torres", email: "camila@alqemia.com", headline: "Marketing de contenidos", avatarColor: "#e11d48", xp: 660, bio: "Creo contenido para marcas de belleza. En camino de convertir mi perfil en un negocio.", goal: "Duplicar mi comunidad en 90 días", createdAt: daysAgo(11, 8), lastActiveAt: hoursAgo(6) },
+    { name: "Sebastián Vega", email: "sebastian@alqemia.com", headline: "Ecommerce · Dropsi", avatarColor: "#0d9488", xp: 340, bio: "Primera tienda en marcha. Documento todo el proceso, incluidos los fracasos.", goal: "Hacer mi primera venta", createdAt: daysAgo(10, 1), lastActiveAt: hoursAgo(12) },
+    { name: "Lucía Fernández", email: "lucia@alqemia.com", headline: "Copywriting", avatarColor: "#ea580c", xp: 980, bio: "Copywriter freelance. Obsesionada con emails que la gente de verdad abre.", goal: "Llenar mi agenda de clientes", createdAt: daysAgo(9, 3), lastActiveAt: hoursAgo(20) },
+    { name: "Mateo Rodríguez", email: "mateo@alqemia.com", headline: "Branding personal", avatarColor: "#65a30d", xp: 180, bio: "Vengo del mundo corporativo y estoy construyendo mi marca como consultor.", goal: "Conseguir 3 clientes de branding", createdAt: daysAgo(7, 6), lastActiveAt: hoursAgo(30) },
+    { name: "Sofía Herrera", email: "sofia@alqemia.com", headline: "Ecommerce · Belleza", avatarColor: "#c026d3", xp: 1720, bio: "Tienda de skincare. Debilidad por los números y el margen antes que por la vanidad.", goal: "Escalar a 100 órdenes diarias", createdAt: daysAgo(6, 4), lastActiveAt: hoursAgo(2) },
+    { name: "Daniel Ortiz", email: "daniel@alqemia.com", headline: "Afiliación digital", avatarColor: "#a8a29e", xp: 520, bio: "Aprendiendo el modelo de afiliados con contenido orgánico. Cero presupuesto.", goal: "Mi primera comisión recurrente", createdAt: daysAgo(5, 9), lastActiveAt: hoursAgo(40) },
+    { name: "Isabela Moreno", email: "isabela@alqemia.com", headline: "Emprendedora digital", avatarColor: "#059669", xp: 110, bio: "Empezando desde cero. Vengo del mundo tradicional y quiero mi primer negocio online.", goal: "Aprender lo básico y lanzar", createdAt: daysAgo(2, 2), lastActiveAt: hoursAgo(8) },
+    { name: "Tomás Caballero", email: "tomas@alqemia.com", headline: "Restaurante → Digital", avatarColor: "#d97706", xp: 280, bio: "Dueño de restaurante digitalizando el negocio. Pide delivery el que esté cerca.", goal: "Digitalizar mi restaurante", createdAt: daysAgo(4, 7), lastActiveAt: hoursAgo(26) },
+    { name: "Carlos Espinoza", email: "carlos@alqemia.com", headline: "Marketing digital", avatarColor: "#e11d48", xp: 300, bio: "", goal: "", createdAt: daysAgo(3, 1), lastActiveAt: daysAgo(1, 6), status: "BLOCKED" },
   ]
 
   const userIds: Record<string, string> = {}
@@ -224,73 +224,73 @@ async function main() {
   type SeedPost = { author: string; content: string; hours: number }
   const posts: SeedPost[] = [
     {
-      author: "valeria@alqemira.com",
+      author: "valeria@alqemia.com",
       content:
         "Checkpoint de la semana: cerramos la mejor semana desde que lancé la tienda. 32 órdenes y un ROAS de 3.4. La lección que me lo cambió todo fue la de escalado del Máster en Meta Ads: no toques la creativa ganadora hasta pasar las 50 conversiones. Si están en campaña, eso evita muchos dolores de cabeza.",
       hours: 3,
     },
     {
-      author: "diego@alqemira.com",
+      author: "diego@alqemia.com",
       content:
         "Pregunta para los que ya escalan: en qué momento decidieron duplicar presupuesto? Llevo 3 días con un CPA estable de $4.20 y tengo miedo de romper la magia. Aportes bienvenidos, prometo devolver el favor con lo que aprenda del test.",
       hours: 7,
     },
     {
-      author: "camila@alqemira.com",
+      author: "camila@alqemia.com",
       content:
-        "Terminé el programa de Marketing de Contenidos en una semana. Cinco lecciones que valen oro. Mi takeaway: constancia antes que perfección. Este mes publiqué 22 reels y dupliqué alcance sin gastar un peso en ads. Gracias ALQEMIRA por un sistema tan claro.",
+        "Terminé el programa de Marketing de Contenidos en una semana. Cinco lecciones que valen oro. Mi takeaway: constancia antes que perfección. Este mes publiqué 22 reels y dupliqué alcance sin gastar un peso en ads. Gracias ALQEMIA por un sistema tan claro.",
       hours: 14,
     },
     {
-      author: "sofia@alqemira.com",
+      author: "sofia@alqemia.com",
       content:
         "Herramienta del día: usé la Calculadora de Precios antes de lanzar mi nueva línea de serums y descubrí que estaba dejando 23% de margen sobre la mesa. Si venden producto físico, no lancen nada sin calcular bien envío y comisión de pasarela. Los números primero, la emoción después.",
       hours: 22,
     },
     {
-      author: "lucia@alqemira.com",
+      author: "lucia@alqemia.com",
       content:
         "Les comparto un mini marco de copy que me está funcionando en emails: 1) dolor real, 2) promesa concreta, 3) prueba, 4) una sola llamada a la acción. Mi último email abrió al 41%. El CopyLab IA me ayuda a generar variantes en segundos y después las pulo a mano. Aliado silencioso.",
       hours: 30,
     },
     {
-      author: "sebastian@alqemira.com",
+      author: "sebastian@alqemia.com",
       content:
         "Día 12 probando el producto que elegí para mi dropsi. Primera venta a las 6:40 de la mañana. Una sola. Y la celebré como si fueran mil. Así se empieza, ¿verdad? Alguien más en etapa de validación para compartir números sin filtros?",
       hours: 44,
     },
     {
-      author: "mateo@alqemira.com",
+      author: "mateo@alqemia.com",
       content:
         "Mi compromiso del trimestre, por escrito y frente a testigos: 10.000 seguidores y 3 clientes de branding. Voy a publicar mi avance cada lunes en este muro para no perderme. Quien quiera, me acompaña y me exige cuando toque.",
       hours: 51,
     },
     {
-      author: "tomas@alqemira.com",
+      author: "tomas@alqemia.com",
       content:
         "Vengo del mundo físico, tengo un restaurante, y entré al hub para digitalizar el negocio. La primera lección de Ecommerce desde Cero me despejó dudas que arrastraba hace meses. Alguien más dando el salto de lo tradicional a lo digital?",
       hours: 62,
     },
     {
-      author: "isabela@alqemira.com",
+      author: "isabela@alqemia.com",
       content:
         "Me acabo de crear la cuenta y completé mi perfil. Qué emoción empezar de cero con ustedes. Recomendación: por dónde empiezo, primero el programa de ecommerce o mejor el de contenidos? Mi objetivo es entender el mapa completo antes de elegir.",
       hours: 73,
     },
     {
-      author: "daniel@alqemira.com",
+      author: "daniel@alqemia.com",
       content:
         "Primera comisión de afiliado: $47 dólares. Para muchos es poco; para mí es la prueba de que el modelo funciona. El orgullo no me deja dormir. La racha sigue, siguiente meta: la primera comisión recurrente de la semana.",
       hours: 85,
     },
     {
-      author: "valeria@alqemira.com",
+      author: "valeria@alqemia.com",
       content:
         "Pregunta rápida para los que venden en Latam: qué pasarela están usando? Estoy evaluando cambiar porque los retrasos de liquidación me complican el flujo de caja para comprar inventario. Experiencias reales, por favor.",
       hours: 100,
     },
     {
-      author: "sofia@alqemira.com",
+      author: "sofia@alqemia.com",
       content:
         "El programa de Escalado a 7 Cifras me voló la cabeza. Números reales, ejemplos reales, cero humo. Recomendado para cualquiera que ya venda y quiera montar sistemas en vez de vivir apagando incendios. Lo estoy viendo por segunda vez y tomando notas distintas.",
       hours: 120,
@@ -313,22 +313,22 @@ async function main() {
   console.log("Creando comentarios...")
   type SeedComment = { postIndex: number; author: string; content: string; hours: number }
   const comments: SeedComment[] = [
-    { postIndex: 0, author: "diego@alqemira.com", content: "Apliqué esa regla y me salvó una campaña que llevaba $800. La regla de las 50 es sagrada.", hours: 2 },
-    { postIndex: 0, author: "sofia@alqemira.com", content: "Ese ROAS con moda es para aplaudir. El margen de moda castiga, bien ahí.", hours: 1 },
-    { postIndex: 0, author: "camila@alqemira.com", content: "Anotando la regla de las 50. Gracias por compartir el número real.", hours: 1 },
-    { postIndex: 1, author: "sofia@alqemira.com", content: "Si llevas 3 días estable, sube 20% y espera 72 horas. Es lo que me funcionó con serums.", hours: 5 },
-    { postIndex: 1, author: "valeria@alqemira.com", content: "El miedo a romperlo es real. Pero recuerda: si funciona, se puede reconstruir. Si nunca escalas, no hay nada que reconstruir.", hours: 4 },
-    { postIndex: 2, author: "isabela@alqemira.com", content: "Tu post me acaba de decidir: empiezo por contenidos. Gracias por compartir tu resultado.", hours: 10 },
-    { postIndex: 3, author: "sebastian@alqemira.com", content: "La calculadora me reveló lo mismo con envíos. Casi lanzo regalando dinero.", hours: 18 },
-    { postIndex: 4, author: "mateo@alqemira.com", content: "El punto 4 es el más difícil: una sola CTA. En branding siempre quiero vender tres cosas a la vez.", hours: 25 },
-    { postIndex: 5, author: "daniel@alqemira.com", content: "Así se empieza. Mi primera comisión también fue sola y fue la mejor notificación del año.", hours: 38 },
-    { postIndex: 5, author: "tomas@alqemira.com", content: "Ánimo! Yo voy 14 días sin venta pero el punto es seguir probando. Nos vamos a comparar resultados.", hours: 36 },
-    { postIndex: 6, author: "camila@alqemira.com", content: "Te exijo los lunes. Este muro será testigo.", hours: 45 },
-    { postIndex: 8, author: "valeria@alqemira.com", content: "Bienvenida Isabela! Mi consejo: ecommerce primero si quieres vender producto, contenidos primero si quieres audiencia. Decide por el negocio, no por el gustito.", hours: 60 },
-    { postIndex: 8, author: "camila@alqemira.com", content: "Coincido con Valeria. Y completa el perfil para que la comunidad sepa quién eres.", hours: 58 },
-    { postIndex: 9, author: "lucia@alqemira.com", content: "47 dólares que valen más que cualquier curso motivacional. Felicidades!", hours: 70 },
-    { postIndex: 10, author: "diego@alqemira.com", content: "Depende del país. Para flujo de caja rápido mira las que liquidan en 48-72h aunque cobren un poco más.", hours: 90 },
-    { postIndex: 11, author: "diego@alqemira.com", content: "Ese programa es un MBA de verdad. La clase de finanzas debería ser obligatoria para todos.", hours: 110 },
+    { postIndex: 0, author: "diego@alqemia.com", content: "Apliqué esa regla y me salvó una campaña que llevaba $800. La regla de las 50 es sagrada.", hours: 2 },
+    { postIndex: 0, author: "sofia@alqemia.com", content: "Ese ROAS con moda es para aplaudir. El margen de moda castiga, bien ahí.", hours: 1 },
+    { postIndex: 0, author: "camila@alqemia.com", content: "Anotando la regla de las 50. Gracias por compartir el número real.", hours: 1 },
+    { postIndex: 1, author: "sofia@alqemia.com", content: "Si llevas 3 días estable, sube 20% y espera 72 horas. Es lo que me funcionó con serums.", hours: 5 },
+    { postIndex: 1, author: "valeria@alqemia.com", content: "El miedo a romperlo es real. Pero recuerda: si funciona, se puede reconstruir. Si nunca escalas, no hay nada que reconstruir.", hours: 4 },
+    { postIndex: 2, author: "isabela@alqemia.com", content: "Tu post me acaba de decidir: empiezo por contenidos. Gracias por compartir tu resultado.", hours: 10 },
+    { postIndex: 3, author: "sebastian@alqemia.com", content: "La calculadora me reveló lo mismo con envíos. Casi lanzo regalando dinero.", hours: 18 },
+    { postIndex: 4, author: "mateo@alqemia.com", content: "El punto 4 es el más difícil: una sola CTA. En branding siempre quiero vender tres cosas a la vez.", hours: 25 },
+    { postIndex: 5, author: "daniel@alqemia.com", content: "Así se empieza. Mi primera comisión también fue sola y fue la mejor notificación del año.", hours: 38 },
+    { postIndex: 5, author: "tomas@alqemia.com", content: "Ánimo! Yo voy 14 días sin venta pero el punto es seguir probando. Nos vamos a comparar resultados.", hours: 36 },
+    { postIndex: 6, author: "camila@alqemia.com", content: "Te exijo los lunes. Este muro será testigo.", hours: 45 },
+    { postIndex: 8, author: "valeria@alqemia.com", content: "Bienvenida Isabela! Mi consejo: ecommerce primero si quieres vender producto, contenidos primero si quieres audiencia. Decide por el negocio, no por el gustito.", hours: 60 },
+    { postIndex: 8, author: "camila@alqemia.com", content: "Coincido con Valeria. Y completa el perfil para que la comunidad sepa quién eres.", hours: 58 },
+    { postIndex: 9, author: "lucia@alqemia.com", content: "47 dólares que valen más que cualquier curso motivacional. Felicidades!", hours: 70 },
+    { postIndex: 10, author: "diego@alqemia.com", content: "Depende del país. Para flujo de caja rápido mira las que liquidan en 48-72h aunque cobren un poco más.", hours: 90 },
+    { postIndex: 11, author: "diego@alqemia.com", content: "Ese programa es un MBA de verdad. La clase de finanzas debería ser obligatoria para todos.", hours: 110 },
   ]
 
   for (const c of comments) {
@@ -345,18 +345,18 @@ async function main() {
 
   console.log("Creando likes...")
   const likeMap: Record<number, string[]> = {
-    0: ["diego@alqemira.com", "sofia@alqemira.com", "camila@alqemira.com", "lucia@alqemira.com", "sebastian@alqemira.com", "mateo@alqemira.com"],
-    1: ["valeria@alqemira.com", "sofia@alqemira.com", "sebastian@alqemira.com"],
-    2: ["valeria@alqemira.com", "isabela@alqemira.com", "lucia@alqemira.com", "daniel@alqemira.com"],
-    3: ["sebastian@alqemira.com", "valeria@alqemira.com", "diego@alqemira.com"],
-    4: ["mateo@alqemira.com", "camila@alqemira.com"],
-    5: ["daniel@alqemira.com", "tomas@alqemira.com", "camila@alqemira.com", "isabela@alqemira.com"],
-    6: ["camila@alqemira.com", "lucia@alqemira.com", "sofia@alqemira.com"],
-    7: ["isabela@alqemira.com", "valeria@alqemira.com"],
-    8: ["valeria@alqemira.com", "camila@alqemira.com", "sofia@alqemira.com", "mateo@alqemira.com", "lucia@alqemira.com"],
-    9: ["lucia@alqemira.com", "sebastian@alqemira.com", "mateo@alqemira.com", "camila@alqemira.com"],
-    10: ["diego@alqemira.com", "sofia@alqemira.com"],
-    11: ["diego@alqemira.com", "valeria@alqemira.com", "daniel@alqemira.com", "lucia@alqemira.com", "tomas@alqemira.com"],
+    0: ["diego@alqemia.com", "sofia@alqemia.com", "camila@alqemia.com", "lucia@alqemia.com", "sebastian@alqemia.com", "mateo@alqemia.com"],
+    1: ["valeria@alqemia.com", "sofia@alqemia.com", "sebastian@alqemia.com"],
+    2: ["valeria@alqemia.com", "isabela@alqemia.com", "lucia@alqemia.com", "daniel@alqemia.com"],
+    3: ["sebastian@alqemia.com", "valeria@alqemia.com", "diego@alqemia.com"],
+    4: ["mateo@alqemia.com", "camila@alqemia.com"],
+    5: ["daniel@alqemia.com", "tomas@alqemia.com", "camila@alqemia.com", "isabela@alqemia.com"],
+    6: ["camila@alqemia.com", "lucia@alqemia.com", "sofia@alqemia.com"],
+    7: ["isabela@alqemia.com", "valeria@alqemia.com"],
+    8: ["valeria@alqemia.com", "camila@alqemia.com", "sofia@alqemia.com", "mateo@alqemia.com", "lucia@alqemia.com"],
+    9: ["lucia@alqemia.com", "sebastian@alqemia.com", "mateo@alqemia.com", "camila@alqemia.com"],
+    10: ["diego@alqemia.com", "sofia@alqemia.com"],
+    11: ["diego@alqemia.com", "valeria@alqemia.com", "daniel@alqemia.com", "lucia@alqemia.com", "tomas@alqemia.com"],
   }
   let likeCount = 0
   for (const [idxStr, authors] of Object.entries(likeMap)) {
@@ -373,17 +373,17 @@ async function main() {
 
   console.log("Creando logros y progreso...")
   const achievementMap: Record<string, string[]> = {
-    "valeria@alqemira.com": ["perfil_completo", "primer_post", "tres_posts", "primer_comentario", "primera_leccion", "cinco_lecciones", "curso_completo"],
-    "diego@alqemira.com": ["perfil_completo", "primer_post", "tres_posts", "primer_comentario", "primera_leccion", "cinco_lecciones"],
-    "sofia@alqemira.com": ["perfil_completo", "primer_post", "tres_posts", "primer_comentario", "primera_leccion", "cinco_lecciones"],
-    "camila@alqemira.com": ["perfil_completo", "primer_post", "tres_posts", "primer_comentario", "primera_leccion", "cinco_lecciones", "curso_completo"],
-    "lucia@alqemira.com": ["perfil_completo", "primer_post", "primer_comentario", "primera_leccion", "cinco_lecciones"],
-    "sebastian@alqemira.com": ["perfil_completo", "primer_post", "primer_comentario", "primera_leccion"],
-    "mateo@alqemira.com": ["perfil_completo", "primer_post", "primer_comentario"],
-    "daniel@alqemira.com": ["perfil_completo", "primer_post", "primer_comentario", "primera_leccion"],
-    "isabela@alqemira.com": ["perfil_completo"],
-    "tomas@alqemira.com": ["perfil_completo", "primer_post", "primer_comentario", "primera_leccion"],
-    "carlos@alqemira.com": ["perfil_completo"],
+    "valeria@alqemia.com": ["perfil_completo", "primer_post", "tres_posts", "primer_comentario", "primera_leccion", "cinco_lecciones", "curso_completo"],
+    "diego@alqemia.com": ["perfil_completo", "primer_post", "tres_posts", "primer_comentario", "primera_leccion", "cinco_lecciones"],
+    "sofia@alqemia.com": ["perfil_completo", "primer_post", "tres_posts", "primer_comentario", "primera_leccion", "cinco_lecciones"],
+    "camila@alqemia.com": ["perfil_completo", "primer_post", "tres_posts", "primer_comentario", "primera_leccion", "cinco_lecciones", "curso_completo"],
+    "lucia@alqemia.com": ["perfil_completo", "primer_post", "primer_comentario", "primera_leccion", "cinco_lecciones"],
+    "sebastian@alqemia.com": ["perfil_completo", "primer_post", "primer_comentario", "primera_leccion"],
+    "mateo@alqemia.com": ["perfil_completo", "primer_post", "primer_comentario"],
+    "daniel@alqemia.com": ["perfil_completo", "primer_post", "primer_comentario", "primera_leccion"],
+    "isabela@alqemia.com": ["perfil_completo"],
+    "tomas@alqemia.com": ["perfil_completo", "primer_post", "primer_comentario", "primera_leccion"],
+    "carlos@alqemia.com": ["perfil_completo"],
   }
   for (const [email, codes] of Object.entries(achievementMap)) {
     for (const code of codes) {
@@ -393,15 +393,15 @@ async function main() {
 
   // Progreso de lecciones
   const progressMap: Record<string, string[]> = {
-    "camila@alqemira.com": lessonIds["marketing-de-contenidos"], // curso completo
-    "valeria@alqemira.com": lessonIds["ecommerce-desde-cero"].slice(0, 5),
-    "sofia@alqemira.com": lessonIds["master-meta-ads"].slice(0, 5),
-    "diego@alqemira.com": lessonIds["master-meta-ads"].slice(0, 4),
-    "lucia@alqemira.com": lessonIds["copywriting-persuasivo"].slice(0, 4),
-    "daniel@alqemira.com": lessonIds["ecommerce-desde-cero"].slice(0, 3),
-    "tomas@alqemira.com": lessonIds["ecommerce-desde-cero"].slice(0, 2),
-    "sebastian@alqemira.com": lessonIds["ecommerce-desde-cero"].slice(0, 2),
-    "isabela@alqemira.com": lessonIds["ecommerce-desde-cero"].slice(0, 1),
+    "camila@alqemia.com": lessonIds["marketing-de-contenidos"], // curso completo
+    "valeria@alqemia.com": lessonIds["ecommerce-desde-cero"].slice(0, 5),
+    "sofia@alqemia.com": lessonIds["master-meta-ads"].slice(0, 5),
+    "diego@alqemia.com": lessonIds["master-meta-ads"].slice(0, 4),
+    "lucia@alqemia.com": lessonIds["copywriting-persuasivo"].slice(0, 4),
+    "daniel@alqemia.com": lessonIds["ecommerce-desde-cero"].slice(0, 3),
+    "tomas@alqemia.com": lessonIds["ecommerce-desde-cero"].slice(0, 2),
+    "sebastian@alqemia.com": lessonIds["ecommerce-desde-cero"].slice(0, 2),
+    "isabela@alqemia.com": lessonIds["ecommerce-desde-cero"].slice(0, 1),
   }
   for (const [email, lessonList] of Object.entries(progressMap)) {
     for (const lessonId of lessonList) {
@@ -412,7 +412,7 @@ async function main() {
   }
   console.log("Logros y progreso creados")
 
-  console.log("Seed completado: ALQEMIRA HUB listo")
+  console.log("Seed completado: ALQEMIA HUB listo")
 }
 
 main()

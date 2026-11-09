@@ -8,7 +8,7 @@ datasource db {
 }
 
 // ============================================================
-// ALQEMIRA HUB — Esquema de la plataforma
+// ALQEMIA HUB — Esquema de la plataforma
 // Miembros, muro social, classroom, gamificación y admin
 // ============================================================
 

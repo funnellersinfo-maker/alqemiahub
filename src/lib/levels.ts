@@ -1,5 +1,5 @@
 // ============================================================
-// ALQEMIRA HUB — Niveles y logros (módulo PURO, sin BD)
+// ALQEMIA HUB — Niveles y logros (módulo PURO, sin BD)
 // Importable desde componentes cliente.
 // ============================================================
 

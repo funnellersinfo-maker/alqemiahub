@@ -43,7 +43,7 @@ export async function requireUser() {
 export async function requireActiveUser() {
   const user = await requireUser()
   if (user.status === "BLOCKED") {
-    throw new ApiError(403, "Tu cuenta está suspendida. Contacta al equipo ALQEMIRA.")
+    throw new ApiError(403, "Tu cuenta está suspendida. Contacta al equipo ALQEMIA.")
   }
   return user
 }

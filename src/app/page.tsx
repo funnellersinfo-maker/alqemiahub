@@ -1,7 +1,7 @@
 "use client"
 
 // ============================================================
-// ALQEMIRA HUB — Página principal (única ruta visible)
+// ALQEMIA HUB — Página principal (única ruta visible)
 // Splash → AuthView → OnboardingFlow → AppShell
 // ============================================================
 
@@ -10,10 +10,10 @@ import { useQueryClient } from "@tanstack/react-query"
 import { ShieldAlert, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useMe } from "@/hooks/use-me"
-import { AuthView } from "@/components/alqemira/auth-view"
-import { OnboardingFlow } from "@/components/alqemira/onboarding-flow"
-import { AppShell } from "@/components/alqemira/app-shell"
-import { XpToaster } from "@/components/alqemira/xp-toaster"
+import { AuthView } from "@/components/alqemia/auth-view"
+import { OnboardingFlow } from "@/components/alqemia/onboarding-flow"
+import { AppShell } from "@/components/alqemia/app-shell"
+import { XpToaster } from "@/components/alqemia/xp-toaster"
 
 function Splash() {
   return (
@@ -21,11 +21,11 @@ function Splash() {
       { }
       <img
         src="/images/logo-mark.png"
-        alt="ALQEMIRA"
-        className="h-16 w-16 rounded-2xl animate-logo-glow object-cover"
+        alt="ALQEMIA"
+        className="h-20 w-20 rounded-3xl animate-logo-glow object-cover"
       />
-      <p className="font-display text-xs font-medium tracking-[0.35em] text-amber-300/80">ALQEMIRA</p>
-      <Loader2 className="h-4 w-4 animate-spin text-zinc-600" aria-label="Cargando" />
+      <p className="brand-wordmark pl-[0.38em] text-xs">ALQEMIA</p>
+      <Loader2 className="h-4 w-4 animate-spin text-zinc-500" aria-label="Cargando" />
     </main>
   )
 }
@@ -38,7 +38,7 @@ function BlockedScreen() {
       </div>
       <h1 className="font-display text-2xl font-semibold text-white">Tu cuenta está suspendida</h1>
       <p className="max-w-sm text-sm text-zinc-400">
-        El equipo de ALQEMIRA suspendió temporalmente tu acceso. Si crees que es un error, escríbele a
+        El equipo de ALQEMIA suspendió temporalmente tu acceso. Si crees que es un error, escríbele a
         soporte para revisarlo.
       </p>
       <Button

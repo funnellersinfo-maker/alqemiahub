@@ -1,5 +1,5 @@
 // ============================================================
-// ALQEMIRA HUB — Estado global del cliente (Zustand)
+// ALQEMIA HUB — Estado global del cliente (Zustand)
 // Navegación de vistas, acceso admin y toasts de gamificación
 // ============================================================
 

@@ -16,18 +16,18 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "ALQEMIRA — Hub de Marketing & Ecommerce",
+  title: "ALQEMIA — Hub de Marketing & Ecommerce",
   description:
     "La academia premium de marketing y ecommerce. Comunidad, programas grabados, herramientas y gamificación para transmutar tu negocio.",
-  applicationName: "ALQEMIRA",
-  authors: [{ name: "ALQEMIRA" }],
+  applicationName: "ALQEMIA",
+  authors: [{ name: "ALQEMIA" }],
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#0a0a0a",
+  themeColor: "#070707",
 };
 
 export default function RootLayout({

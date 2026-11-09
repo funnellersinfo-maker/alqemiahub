@@ -52,3 +52,13 @@ prompt
 server.log
 # Skills directory
 /skills/
+# database (SQLite local — regenerar con bun prisma/seed.ts)
+db/
+prisma/dev.db
+
+# upload folder
+upload/
+
+# runtime
+*.pid
+server.log
