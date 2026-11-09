@@ -227,18 +227,18 @@ export function EditProfileDialog({
                 id="edit-headline"
                 value={headline}
                 onChange={(e) => setHeadline(e.target.value)}
-                maxLength={120}
-                placeholder="Ej: Ecommerce · Moda"
+                maxLength={240}
+                placeholder="Ej: Ecommerce · Moda · Copywriting"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="edit-goal">Objetivo</Label>
+              <Label htmlFor="edit-goal">Objetivos</Label>
               <Input
                 id="edit-goal"
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
-                maxLength={160}
-                placeholder="Ej: Lanzar mi primera tienda online"
+                maxLength={240}
+                placeholder="Ej: Lanzar mi tienda · Escalar ventas"
               />
             </div>
             <div className="space-y-1.5">

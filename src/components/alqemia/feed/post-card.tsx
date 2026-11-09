@@ -112,7 +112,7 @@ export function PostCard({ post }: { post: FeedPost }) {
     : timeAgo(post.createdAt)
 
   return (
-    <Card className="gap-0 overflow-hidden rounded-2xl border-zinc-800 bg-zinc-950 p-4 sm:p-5">
+    <Card className="hover-lift gap-0 overflow-hidden rounded-2xl border-zinc-800 bg-zinc-950 p-4 sm:p-5">
       <article>
         <div className="flex items-start gap-3">
           <UserAvatar user={post.user} size="md" />

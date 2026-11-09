@@ -57,7 +57,7 @@ export async function PATCH(req: NextRequest) {
       data.name = name
     }
     if (typeof body.headline === "string") {
-      if (body.headline.length > 120) return errorResponse(400, "El titular es demasiado largo")
+      if (body.headline.length > 240) return errorResponse(400, "El titular es demasiado largo (máx 240)")
       data.headline = body.headline.trim() || ""
     }
     if (typeof body.bio === "string") {
@@ -65,7 +65,7 @@ export async function PATCH(req: NextRequest) {
       data.bio = body.bio.trim()
     }
     if (typeof body.goal === "string") {
-      if (body.goal.length > 160) return errorResponse(400, "El objetivo es demasiado largo")
+      if (body.goal.length > 240) return errorResponse(400, "El objetivo es demasiado largo (máx 240)")
       data.goal = body.goal.trim()
     }
     if (typeof body.avatarColor === "string") {

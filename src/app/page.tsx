@@ -14,18 +14,22 @@ import { AuthView } from "@/components/alqemia/auth-view"
 import { OnboardingFlow } from "@/components/alqemia/onboarding-flow"
 import { AppShell } from "@/components/alqemia/app-shell"
 import { XpToaster } from "@/components/alqemia/xp-toaster"
+import { AlchemyBackground } from "@/components/alqemia/fx/alchemy-background"
+import { GoldenPortal } from "@/components/alqemia/fx/golden-portal"
+import { KineticWordmark } from "@/components/alqemia/fx/kinetic-wordmark"
 
 function Splash() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-zinc-950">
-      { }
-      <img
-        src="/images/logo-mark.png"
-        alt="ALQEMIA"
-        className="h-20 w-20 rounded-3xl animate-logo-glow object-cover"
-      />
-      <p className="brand-wordmark pl-[0.38em] text-xs">ALQEMIA</p>
-      <Loader2 className="h-4 w-4 animate-spin text-zinc-500" aria-label="Cargando" />
+    <main className="relative flex min-h-dvh flex-col items-center justify-center gap-6 overflow-hidden bg-[#050505]">
+      <AlchemyBackground density={0.9} />
+      <div className="relative z-10 flex flex-col items-center gap-5">
+        <GoldenPortal size={128} />
+        <KineticWordmark className="text-lg" delay={0.4} />
+        <Loader2
+          className="h-4 w-4 animate-spin text-gold/70"
+          aria-label="Cargando"
+        />
+      </div>
     </main>
   )
 }

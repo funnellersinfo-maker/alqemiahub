@@ -31,16 +31,37 @@ function daysAgo(d: number, extraH = 0): Date {
 
 const DEMO_PASSWORD = hashPassword("alqemia123")
 
+// Emails que pertenecen al seed: solo estos se borran y recrean.
+// Las cuentas reales creadas por usuarios (registro/Google) se preservan.
+const SEED_EMAILS = [
+  "valeria@alqemia.com",
+  "diego@alqemia.com",
+  "camila@alqemia.com",
+  "sebastian@alqemia.com",
+  "lucia@alqemia.com",
+  "mateo@alqemia.com",
+  "sofia@alqemia.com",
+  "daniel@alqemia.com",
+  "isabela@alqemia.com",
+  "tomas@alqemia.com",
+  "carlos@alqemia.com",
+]
+
 async function main() {
-  console.log("Limpiando datos previos...")
-  await db.like.deleteMany()
-  await db.comment.deleteMany()
-  await db.post.deleteMany()
-  await db.lessonProgress.deleteMany()
-  await db.achievement.deleteMany()
-  await db.user.deleteMany()
+  console.log("Limpiando datos del seed previo (se preservan las cuentas reales)...")
+  await db.like.deleteMany({
+    where: { OR: [{ user: { email: { in: SEED_EMAILS } } }, { post: { user: { email: { in: SEED_EMAILS } } } }] },
+  })
+  await db.comment.deleteMany({
+    where: { OR: [{ user: { email: { in: SEED_EMAILS } } }, { post: { user: { email: { in: SEED_EMAILS } } } }] },
+  })
+  await db.post.deleteMany({ where: { user: { email: { in: SEED_EMAILS } } } })
+  await db.user.deleteMany({ where: { email: { in: SEED_EMAILS } } })
   await db.lesson.deleteMany()
   await db.course.deleteMany()
+
+  const realUsers = await db.user.count()
+  console.log(`Cuentas reales preservadas: ${realUsers}`)
 
   console.log("Creando programas de formación...")
   type CourseSeed = {

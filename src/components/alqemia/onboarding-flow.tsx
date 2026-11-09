@@ -1,12 +1,20 @@
 "use client"
 
+// ============================================================
+// ALQEMIA — Onboarding gamificado
+// 3 pasos: avatar → especialidades (varias) → objetivos (varios).
+// Guarda headline = especialidades.join(" · ") y goal = objetivos.join(" · ")
+// ============================================================
+
 import { useState, type ChangeEvent, type ReactNode } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { Camera, Loader2, Zap } from "lucide-react"
+import { Camera, Check, Loader2, Zap } from "lucide-react"
 import { toast } from "sonner"
 
 import { AVATAR_COLORS, UserAvatar } from "@/components/alqemia/avatar"
 import { LevelBadge } from "@/components/alqemia/level-badge"
+import { AlchemyBackground } from "@/components/alqemia/fx/alchemy-background"
+import { CountUp, SparkleBurst } from "@/components/alqemia/fx/celebration"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -89,8 +97,56 @@ function initialOf(name: string): string {
   return (ch || "A").toUpperCase()
 }
 
-const CHIP_CLASSES =
-  "rounded-full border px-4 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+// Chip de selección múltiple con check + pop al activarse
+function SelectChip({
+  label,
+  selected,
+  onToggle,
+}: {
+  label: string
+  selected: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={selected}
+      className={cn(
+        "group inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold active:scale-95",
+        selected
+          ? "animate-chip-pop border-gold-deep bg-gold/10 text-gold-bright shadow-[0_0_18px_-6px_rgba(217,164,65,0.55)]"
+          : "border-zinc-800 text-zinc-400 hover:border-gold/40 hover:text-zinc-200"
+      )}
+    >
+      <Check
+        className={cn(
+          "h-3.5 w-3.5 transition-all duration-200",
+          selected ? "scale-100 opacity-100" : "scale-50 opacity-0"
+        )}
+        aria-hidden="true"
+      />
+      {label}
+    </button>
+  )
+}
+
+// Contador de selección ("3 seleccionadas")
+function SelectionCounter({ count, singular, plural }: { count: number; singular: string; plural: string }) {
+  return (
+    <span
+      aria-live="polite"
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-all duration-300",
+        count > 0
+          ? "animate-chip-pop border-gold/40 bg-gold/10 text-gold-bright"
+          : "border-zinc-800 text-zinc-500"
+      )}
+    >
+      {count > 0 ? `${count} ${count === 1 ? singular : plural}` : "Ninguna aún"}
+    </span>
+  )
+}
 
 // Navegación inferior de cada paso del wizard
 function WizardNav({
@@ -127,7 +183,7 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
   const [uploading, setUploading] = useState(false)
   const [specialties, setSpecialties] = useState<string[]>([])
   const [bio, setBio] = useState("")
-  const [goal, setGoal] = useState<string | null>(null)
+  const [goals, setGoals] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<MeResponse | null>(null)
 
@@ -169,13 +225,19 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
     )
   }
 
+  function toggleGoal(item: string) {
+    setGoals((prev) =>
+      prev.includes(item) ? prev.filter((g) => g !== item) : [...prev, item]
+    )
+  }
+
   async function handleSubmit() {
-    if (specialties.length === 0 || !goal || submitting) return
+    if (specialties.length === 0 || goals.length === 0 || submitting) return
     setSubmitting(true)
     try {
       const body: Record<string, unknown> = {
         headline: specialties.join(" · "),
-        goal,
+        goal: goals.join(" · "),
         profileCompleted: true,
       }
       if (image) {
@@ -211,14 +273,16 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
   const progressValue = step >= 3 ? 100 : (step / 3) * 100
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-zinc-900 p-4 sm:p-6">
+    <div className="relative flex min-h-dvh flex-col items-center overflow-hidden bg-zinc-950 p-4 sm:p-6">
+      {/* Fondo vivo */}
+      <AlchemyBackground density={0.7} />
+
       {/* Marca */}
-      <div className="flex flex-col items-center text-center">
-        { }
+      <div className="animate-fade-up relative z-10 flex flex-col items-center text-center">
         <img
           src="/images/logo-mark.png"
           alt="Logotipo de ALQEMIA"
-          className="h-10 w-10 rounded-xl shadow"
+          className="h-10 w-10 rounded-xl shadow-[0_0_28px_-4px_rgba(217,164,65,0.5)]"
         />
         <span className="brand-wordmark mt-3 pl-[0.38em] text-sm">ALQEMIA</span>
         <h1 className="font-display mt-3 text-2xl tracking-tight text-zinc-100 sm:text-3xl">
@@ -227,7 +291,7 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
         <p className="mt-2 text-sm text-zinc-500">3 pasos para desbloquear tu +100 XP</p>
       </div>
 
-      <Card className="mt-8 w-full max-w-xl gap-0 rounded-2xl p-6 sm:p-8">
+      <Card className="gate-card animate-fade-up relative z-10 mt-8 w-full max-w-xl gap-0 rounded-2xl border-0 p-6 [animation-delay:0.15s] sm:p-8">
         <span className="text-xs text-zinc-500">
           {step >= 3 ? "Perfil completo" : `Paso ${step + 1} de 3`}
         </span>
@@ -243,10 +307,12 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
               <p className="mt-1 text-sm text-zinc-500">¿Cómo te verá la comunidad?</p>
 
               <div className="mt-6 flex flex-col items-center">
-                <UserAvatar
-                  user={{ name: displayName, image: previewImage, avatarColor: effectiveColor }}
-                  size="2xl"
-                />
+                <div className="animate-chip-pop" key={previewImage ?? effectiveColor}>
+                  <UserAvatar
+                    user={{ name: displayName, image: previewImage, avatarColor: effectiveColor }}
+                    size="2xl"
+                  />
+                </div>
                 <p className="mt-3 text-sm font-medium text-zinc-100">{displayName}</p>
                 <p className="text-xs text-zinc-500">{user?.email ?? ""}</p>
               </div>
@@ -261,8 +327,9 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
                     aria-label={`Elegir color de avatar ${index + 1}`}
                     aria-pressed={effectiveColor === color}
                     className={cn(
-                      "flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold text-white transition-transform hover:scale-105 disabled:pointer-events-none disabled:opacity-60",
-                      effectiveColor === color && "ring-2 ring-gold-deep ring-offset-2"
+                      "flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold text-white transition-transform hover:scale-105 active:scale-95 disabled:pointer-events-none disabled:opacity-60",
+                      effectiveColor === color &&
+                        "animate-chip-pop ring-2 ring-gold-deep ring-offset-2 ring-offset-zinc-950"
                     )}
                     style={{ backgroundColor: color }}
                   >
@@ -280,7 +347,7 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
               />
               <label
                 htmlFor="avatar-upload"
-                className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-700 p-3 text-sm text-zinc-400 transition-colors hover:bg-zinc-900"
+                className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-700 p-3 text-sm text-zinc-400 transition-colors hover:border-gold/50 hover:text-zinc-200"
               >
                 {uploading ? (
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -293,7 +360,7 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
               <WizardNav showBack={false}>
                 <Button
                   type="button"
-                  className="w-full sm:w-auto"
+                  className="btn-gold w-full font-semibold sm:w-auto"
                   disabled={uploading}
                   onClick={() => setStep(1)}
                 >
@@ -305,28 +372,22 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
 
           {step === 1 && (
             <div>
-              <h2 className="font-display text-lg tracking-tight text-zinc-100">Tu especialidad</h2>
-              <p className="mt-1 text-sm text-zinc-500">¿A qué te dedicas?</p>
-              <p className="mt-0.5 text-xs text-zinc-400">
-                Elige una o varias (aparecerán en tu perfil)
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-display text-lg tracking-tight text-zinc-100">
+                  Tus especialidades
+                </h2>
+                <SelectionCounter count={specialties.length} singular="elegida" plural="elegidas" />
+              </div>
+              <p className="mt-1 text-sm text-zinc-500">¿A qué te dedicas? Elige todas las que apliquen.</p>
 
               <div className="mt-5 flex flex-wrap gap-2">
                 {SPECIALTIES.map((item) => (
-                  <button
+                  <SelectChip
                     key={item}
-                    type="button"
-                    onClick={() => toggleSpecialty(item)}
-                    aria-pressed={specialties.includes(item)}
-                    className={cn(
-                      CHIP_CLASSES,
-                      specialties.includes(item)
-                        ? "border-gold-deep bg-gold/10 text-gold-bright"
-                        : "border-zinc-800 text-zinc-400 hover:border-zinc-700"
-                    )}
-                  >
-                    {item}
-                  </button>
+                    label={item}
+                    selected={specialties.includes(item)}
+                    onToggle={() => toggleSpecialty(item)}
+                  />
                 ))}
               </div>
 
@@ -340,7 +401,7 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
                   rows={3}
                   maxLength={500}
                   placeholder="Ej. Gestor de tiendas Shopify enamorado del copywriting..."
-                  className="mt-2 resize-none"
+                  className="mt-2 resize-none border-zinc-800 bg-zinc-950/70 focus-visible:border-gold/50 focus-visible:ring-gold/25"
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                 />
@@ -349,11 +410,11 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
               <WizardNav showBack onBack={() => setStep(0)}>
                 <Button
                   type="button"
-                  className="w-full sm:w-auto"
+                  className="btn-gold w-full font-semibold sm:w-auto"
                   disabled={specialties.length === 0}
                   onClick={() => setStep(2)}
                 >
-                  Continuar
+                  Continuar ({specialties.length})
                 </Button>
               </WizardNav>
             </div>
@@ -361,45 +422,42 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
 
           {step === 2 && (
             <div>
-              <h2 className="font-display text-lg tracking-tight text-zinc-100">Tu objetivo</h2>
-              <p className="mt-1 text-sm text-zinc-500">¿Qué quieres lograr primero?</p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-display text-lg tracking-tight text-zinc-100">Tus objetivos</h2>
+                <SelectionCounter count={goals.length} singular="elegido" plural="elegidos" />
+              </div>
+              <p className="mt-1 text-sm text-zinc-500">
+                ¿Qué quieres lograr? Elige todos los que quieras perseguir.
+              </p>
               <p className="mt-0.5 text-xs text-zinc-400">
-                Lo usaremos para recomendarte programas
+                Los usaremos para recomendarte programas
               </p>
 
               <div className="mt-5 flex flex-wrap gap-2">
                 {GOALS.map((item) => (
-                  <button
+                  <SelectChip
                     key={item}
-                    type="button"
-                    onClick={() => setGoal(item)}
-                    aria-pressed={goal === item}
-                    className={cn(
-                      CHIP_CLASSES,
-                      goal === item
-                        ? "border-gold-deep bg-gold/10 text-gold-bright"
-                        : "border-zinc-800 text-zinc-400 hover:border-zinc-700"
-                    )}
-                  >
-                    {item}
-                  </button>
+                    label={item}
+                    selected={goals.includes(item)}
+                    onToggle={() => toggleGoal(item)}
+                  />
                 ))}
               </div>
 
               <WizardNav showBack onBack={() => setStep(1)}>
                 <Button
                   type="button"
-                  className="w-full sm:w-auto"
-                  disabled={!goal || submitting}
+                  className="btn-gold w-full font-semibold sm:w-auto"
+                  disabled={goals.length === 0 || submitting}
                   onClick={() => void handleSubmit()}
                 >
                   {submitting ? (
                     <Loader2 className="animate-spin" aria-hidden="true" />
                   ) : (
-                    <Zap className="text-gold" aria-hidden="true" />
+                    <Zap aria-hidden="true" />
                   )}
                   Completar perfil
-                  <span className="rounded-full bg-gold/15 px-2 py-0.5 text-xs font-semibold text-gold">
+                  <span className="rounded-full bg-black/20 px-2 py-0.5 text-xs font-bold">
                     +100 XP
                   </span>
                 </Button>
@@ -408,23 +466,33 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
           )}
 
           {step >= 3 && (
-            <div className="flex flex-col items-center text-center">
-              <div className="animate-logo-glow flex h-20 w-20 items-center justify-center rounded-full bg-gold/10">
-                <Zap className="h-10 w-10 text-gold-deep" aria-hidden="true" />
+            <div className="relative flex flex-col items-center py-4 text-center">
+              <SparkleBurst count={20} distance={104} />
+              <div className="animate-portal-in relative flex h-20 w-20 items-center justify-center rounded-full bg-gold/10 shadow-[0_0_50px_-6px_rgba(217,164,65,0.6)] ring-1 ring-gold/40">
+                <Zap className="h-10 w-10 fill-gold text-gold-deep" aria-hidden="true" />
               </div>
-              <p className="font-display mt-6 text-4xl font-bold text-gold-deep">+{awardedXp} XP</p>
-              <h2 className="font-display mt-2 text-xl tracking-tight text-zinc-100">
+              <p className="font-display animate-fade-up mt-6 text-5xl font-bold tracking-tight [animation-delay:0.1s]">
+                <span className="gold-text">
+                  +<CountUp value={awardedXp} /> XP
+                </span>
+              </p>
+              <h2 className="font-display animate-fade-up mt-2 text-xl tracking-tight text-zinc-100 [animation-delay:0.25s]">
                 Perfil Transmutado
               </h2>
               {levelInfo && (
-                <div className="mt-3">
+                <div className="animate-fade-up mt-3 [animation-delay:0.4s]">
                   <LevelBadge level={levelInfo} />
                 </div>
               )}
-              <p className="mt-4 text-sm text-zinc-500">
+              <p className="animate-fade-up mt-4 max-w-sm text-sm text-zinc-500 [animation-delay:0.5s]">
                 Ya eres parte del gremio. Tu progreso queda registrado para el ranking.
               </p>
-              <Button type="button" size="lg" className="mt-8" onClick={() => onComplete?.()}>
+              <Button
+                type="button"
+                size="lg"
+                className="btn-gold animate-fade-up mt-8 px-8 font-semibold [animation-delay:0.6s]"
+                onClick={() => onComplete?.()}
+              >
                 Entrar al Hub
               </Button>
             </div>

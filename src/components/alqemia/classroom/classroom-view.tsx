@@ -36,7 +36,7 @@ function CourseCard({
 
   return (
     <button type="button" onClick={onOpen} className="group w-full text-left">
-      <Card className="h-full gap-0 overflow-hidden rounded-2xl p-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+      <Card className="hover-lift h-full gap-0 overflow-hidden rounded-2xl border-zinc-800/80 p-0">
         <div className="relative aspect-video overflow-hidden">
           <img
             src={course.cover}

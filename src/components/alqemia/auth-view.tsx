@@ -1,16 +1,35 @@
 "use client"
 
+// ============================================================
+// ALQEMIA — La Primera Puerta (AuthView)
+// Entrada dopaminérgica: portal dorado orbitando, polvo de oro
+// ascendente, wordmark cinético, tarjeta-puerta con borde cónico
+// giratorio, botones con sheen y cinta de códice al final.
+// ============================================================
+
 import { useState, type FormEvent } from "react"
 import { signIn } from "next-auth/react"
 import { useQuery } from "@tanstack/react-query"
-import { GraduationCap, Loader2, Users, Wrench, type LucideIcon } from "lucide-react"
+import {
+  GraduationCap,
+  Loader2,
+  Sparkles,
+  Users,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react"
 import { toast } from "sonner"
 
 import { GoogleDemoDialog } from "@/components/alqemia/google-demo-dialog"
+import { AlchemyBackground } from "@/components/alqemia/fx/alchemy-background"
+import { GoldenPortal } from "@/components/alqemia/fx/golden-portal"
+import { KineticWordmark } from "@/components/alqemia/fx/kinetic-wordmark"
+import { Marquee } from "@/components/alqemia/fx/marquee"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { cn } from "@/lib/utils"
 import type { ApiErrorShape } from "@/lib/types"
 
 // ----------------------------------------------------------------
@@ -48,23 +67,33 @@ function GoogleLogo({ className }: { className?: string }) {
   )
 }
 
-const HERO_CHIPS: { icon: LucideIcon; label: string }[] = [
-  { icon: Users, label: "Comunidad activa" },
-  { icon: GraduationCap, label: "Programas grabados" },
-  { icon: Wrench, label: "Herramientas de crecimiento" },
+const ORBIT_CHIPS: { icon: LucideIcon; label: string; className: string; delay: string }[] = [
+  { icon: Users, label: "Comunidad activa", className: "-left-48 top-4", delay: "0.6s" },
+  { icon: GraduationCap, label: "Programas grabados", className: "-right-52 top-16", delay: "1.6s" },
+  { icon: Wrench, label: "Herramientas IA", className: "-left-44 bottom-0", delay: "2.6s" },
+]
+
+const MARQUEE_ITEMS = [
+  "TRANSMUTA CLICKS EN VENTAS",
+  "COMUNIDAD · PROGRAMAS · HERRAMIENTAS",
+  "EL ORO SE FORJA EN PÚBLICO",
+  "NUEVO NIVEL, NUEVA ALQUIMIA",
 ]
 
 const DEMO_EMAIL = "valeria@alqemia.com"
 const DEMO_PASSWORD = "alqemia123"
 
+const INPUT_GOLD =
+  "h-11 border-zinc-800 bg-zinc-950/70 transition-all focus-visible:border-gold/50 focus-visible:ring-gold/25 focus-visible:shadow-[0_0_20px_-6px_rgba(217,164,65,0.45)]"
+
 function EmailDivider() {
   return (
     <div className="relative py-3" aria-hidden="true">
       <div className="absolute inset-0 flex items-center">
-        <span className="w-full border-t border-zinc-800" />
+        <span className="w-full border-t border-zinc-800/80" />
       </div>
       <div className="relative flex justify-center">
-        <span className="bg-zinc-950 px-2 text-xs text-zinc-400">o con tu email</span>
+        <span className="bg-transparent px-2 text-xs text-zinc-500">o con tu email</span>
       </div>
     </div>
   )
@@ -156,206 +185,196 @@ export function AuthView() {
   }
 
   return (
-    <div className="grid min-h-dvh bg-zinc-950 lg:grid-cols-2">
-      {/* Panel héroe (solo desktop) */}
-      <aside className="relative hidden overflow-hidden bg-zinc-950 lg:flex lg:flex-col lg:justify-end">
-        { }
-        <img
-          src="/images/auth-hero.png"
-          alt="Espacio de trabajo de la comunidad ALQEMIA"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
-        <div className="relative z-10 p-10">
-          <span className="brand-wordmark pl-[0.38em] text-2xl">ALQEMIA</span>
-          <p className="mt-3 max-w-md text-zinc-300">
-            La academia donde el marketing se transmuta en ventas.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-2">
-            {HERO_CHIPS.map((chip) => (
-              <span
+    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-[#050505]">
+      {/* Fondo vivo: auroras + polvo de oro + retícula */}
+      <AlchemyBackground density={1.15} />
+
+      {/* ============ ESCENA ============ */}
+      <main className="relative z-10 flex flex-1 flex-col items-center px-4 pb-12 pt-10 sm:pt-14">
+        <div className="flex w-full flex-1 flex-col items-center justify-center gap-7 sm:gap-9">
+          {/* El Portal Dorado con chips orbitando (desktop) */}
+          <div className="relative">
+            <GoldenPortal size={168} />
+            {ORBIT_CHIPS.map((chip) => (
+              <div
                 key={chip.label}
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-zinc-200 backdrop-blur-sm"
+                aria-hidden="true"
+                className={cn(
+                  "animate-float absolute hidden items-center gap-2 rounded-full border border-gold/25 bg-zinc-950/85 px-4 py-2 text-xs font-medium text-zinc-300 shadow-[0_8px_30px_-10px_rgba(217,164,65,0.35)] backdrop-blur-md lg:flex",
+                  chip.className
+                )}
+                style={{ animationDelay: chip.delay }}
               >
                 <chip.icon className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
                 {chip.label}
-              </span>
+              </div>
             ))}
           </div>
-        </div>
-      </aside>
 
-      {/* Panel de acceso */}
-      <main className="flex items-center justify-center p-6 sm:p-10">
-        <div className="w-full max-w-md">
-          {/* Marca */}
-          <div className="flex items-center gap-3">
-            { }
-            <img
-              src="/images/logo-mark.png"
-              alt="Logotipo de ALQEMIA"
-              className="h-12 w-12 rounded-2xl shadow-lg shadow-gold/10"
-            />
-            <div>
-              <span className="brand-wordmark block pl-[0.38em] text-sm">ALQEMIA</span>
-              <p className="mt-0.5 text-sm text-zinc-400">Ingresa al hub</p>
-            </div>
+          {/* Wordmark cinético + promesa */}
+          <div className="animate-fade-up text-center [animation-delay:0.75s]">
+            <KineticWordmark className="text-2xl sm:text-3xl" />
+            <p className="mt-3 max-w-xs text-balance text-sm leading-relaxed text-zinc-400 sm:max-w-none sm:text-base">
+              Donde el marketing se{" "}
+              <span className="gold-text font-semibold">transmuta</span> en ventas
+            </p>
           </div>
 
-          {/* Strip héroe compacto (solo móvil) */}
-          <div className="relative mt-6 h-28 overflow-hidden rounded-2xl bg-zinc-950 lg:hidden">
-            { }
-            <img
-              src="/images/auth-hero.png"
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/70 to-zinc-950/10" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="brand-wordmark pl-[0.38em] text-lg">ALQEMIA</span>
-            </div>
-          </div>
-
-          <Tabs
-            value={tab}
-            onValueChange={(value) => setTab(value === "register" ? "register" : "login")}
-            className="mt-6 lg:mt-8"
+          {/* ============ LA PUERTA ============ */}
+          <div
+            className="gate-card animate-fade-up w-full max-w-md p-5 [animation-delay:0.9s] sm:p-7"
           >
-            <TabsList className="grid h-11 w-full grid-cols-2">
-              <TabsTrigger value="login">Ingresar</TabsTrigger>
-              <TabsTrigger value="register">Crear cuenta</TabsTrigger>
-            </TabsList>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-4 h-11 w-full gap-2"
-              onClick={handleGoogle}
+            <Tabs
+              value={tab}
+              onValueChange={(value) => setTab(value === "register" ? "register" : "login")}
             >
-              <GoogleLogo className="h-5 w-5" />
-              Continuar con Google
-            </Button>
-
-            <EmailDivider />
-
-            <TabsContent value="login" className="mt-0">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <Label htmlFor="login-email">Email</Label>
-                  <Input
-                    id="login-email"
-                    type="email"
-                    required
-                    autoComplete="email"
-                    placeholder="tu@email.com"
-                    className="mt-2 h-11"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="login-password">Contraseña</Label>
-                  <Input
-                    id="login-password"
-                    type="password"
-                    required
-                    autoComplete="current-password"
-                    placeholder="Tu contraseña"
-                    className="mt-2 h-11"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                  />
-                </div>
-                <Button type="submit" className="h-11 w-full" disabled={loginLoading}>
-                  {loginLoading && <Loader2 className="animate-spin" aria-hidden="true" />}
+              <TabsList className="grid h-11 w-full grid-cols-2 bg-zinc-950/80">
+                <TabsTrigger value="login" className="data-[state=active]:text-gold-bright">
                   Ingresar
-                </Button>
-              </form>
+                </TabsTrigger>
+                <TabsTrigger value="register" className="data-[state=active]:text-gold-bright">
+                  Crear cuenta
+                </TabsTrigger>
+              </TabsList>
 
-              {/* Cuenta demo */}
-              <div className="mt-4 rounded-xl border border-dashed border-gold/50 bg-gold/10 p-3 text-xs text-zinc-400">
-                <div className="flex items-center justify-between gap-2">
-                  <p>
-                    Cuenta de miembro demo:{" "}
-                    <span className="font-medium text-zinc-200">{DEMO_EMAIL}</span> ·{" "}
-                    <span className="font-medium text-zinc-200">{DEMO_PASSWORD}</span>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4 h-11 w-full gap-2 border-zinc-800 bg-zinc-950/60 transition-all hover:border-gold/40 hover:bg-zinc-900/80 hover:shadow-[0_0_24px_-8px_rgba(217,164,65,0.4)]"
+                onClick={handleGoogle}
+              >
+                <GoogleLogo className="h-5 w-5" />
+                Continuar con Google
+              </Button>
+
+              <EmailDivider />
+
+              <TabsContent value="login" className="mt-0 data-[state=active]:animate-view">
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div>
+                    <Label htmlFor="login-email">Email</Label>
+                    <Input
+                      id="login-email"
+                      type="email"
+                      required
+                      autoComplete="email"
+                      placeholder="tu@email.com"
+                      className={cn(INPUT_GOLD, "mt-2")}
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="login-password">Contraseña</Label>
+                    <Input
+                      id="login-password"
+                      type="password"
+                      required
+                      autoComplete="current-password"
+                      placeholder="Tu contraseña"
+                      className={cn(INPUT_GOLD, "mt-2")}
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                    />
+                  </div>
+                  <Button type="submit" className="btn-gold h-11 w-full font-semibold" disabled={loginLoading}>
+                    {loginLoading ? (
+                      <Loader2 className="animate-spin" aria-hidden="true" />
+                    ) : null}
+                    Cruzar la puerta
+                  </Button>
+                </form>
+
+                {/* Cuenta demo */}
+                <div className="mt-4 rounded-xl border border-dashed border-gold/40 bg-gold/[0.07] p-3 text-xs text-zinc-400">
+                  <p className="flex items-start gap-1.5">
+                    <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" aria-hidden="true" />
+                    <span className="min-w-0">
+                      Miembro demo: <span className="font-medium text-zinc-200">{DEMO_EMAIL}</span> ·{" "}
+                      <span className="font-medium text-zinc-200">{DEMO_PASSWORD}</span>
+                    </span>
                   </p>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={applyDemoAccount}
-                    className="shrink-0"
+                    className="mt-2 w-full text-gold-bright hover:bg-gold/10 hover:text-gold-bright sm:ml-auto sm:mt-0 sm:w-auto"
                   >
                     Usar
                   </Button>
                 </div>
-              </div>
-            </TabsContent>
+              </TabsContent>
 
-            <TabsContent value="register" className="mt-0">
-              <form onSubmit={handleRegister} className="space-y-4">
-                <div>
-                  <Label htmlFor="register-name">Nombre completo</Label>
-                  <Input
-                    id="register-name"
-                    type="text"
-                    required
-                    autoComplete="name"
-                    placeholder="Tu nombre y apellido"
-                    className="mt-2 h-11"
-                    value={regName}
-                    onChange={(e) => setRegName(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="register-email">Email</Label>
-                  <Input
-                    id="register-email"
-                    type="email"
-                    required
-                    autoComplete="email"
-                    placeholder="tu@email.com"
-                    className="mt-2 h-11"
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="register-password">Contraseña</Label>
-                    <span className="text-xs text-zinc-400">Mínimo 6 caracteres</span>
+              <TabsContent value="register" className="mt-0 data-[state=active]:animate-view">
+                <form onSubmit={handleRegister} className="space-y-4">
+                  <div>
+                    <Label htmlFor="register-name">Nombre completo</Label>
+                    <Input
+                      id="register-name"
+                      type="text"
+                      required
+                      autoComplete="name"
+                      placeholder="Tu nombre y apellido"
+                      className={cn(INPUT_GOLD, "mt-2")}
+                      value={regName}
+                      onChange={(e) => setRegName(e.target.value)}
+                    />
                   </div>
-                  <Input
-                    id="register-password"
-                    type="password"
-                    required
-                    minLength={6}
-                    autoComplete="new-password"
-                    placeholder="Crea una contraseña"
-                    className="mt-2 h-11"
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                  />
-                </div>
-                <Button type="submit" className="h-11 w-full" disabled={regLoading}>
-                  {regLoading && <Loader2 className="animate-spin" aria-hidden="true" />}
-                  Crear mi cuenta
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+                  <div>
+                    <Label htmlFor="register-email">Email</Label>
+                    <Input
+                      id="register-email"
+                      type="email"
+                      required
+                      autoComplete="email"
+                      placeholder="tu@email.com"
+                      className={cn(INPUT_GOLD, "mt-2")}
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="register-password">Contraseña</Label>
+                      <span className="text-xs text-zinc-500">Mínimo 6 caracteres</span>
+                    </div>
+                    <Input
+                      id="register-password"
+                      type="password"
+                      required
+                      minLength={6}
+                      autoComplete="new-password"
+                      placeholder="Crea una contraseña"
+                      className={cn(INPUT_GOLD, "mt-2")}
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                    />
+                  </div>
+                  <Button type="submit" className="btn-gold h-11 w-full font-semibold" disabled={regLoading}>
+                    {regLoading ? (
+                      <Loader2 className="animate-spin" aria-hidden="true" />
+                    ) : null}
+                    Forjar mi cuenta
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
 
-          <div className="mt-6 text-center">
-            <p className="text-xs text-zinc-400">
-              Al crear tu cuenta aceptas las reglas de la comunidad.
+            <p className="mt-5 text-center text-[11px] leading-relaxed text-zinc-500">
+              Al entrar aceptas las reglas del gremio.
+              <br />© ALQEMIA · Marketing & Ecommerce
             </p>
-            <p className="mt-1 text-xs text-zinc-400">© ALQEMIA · Marketing & Ecommerce</p>
           </div>
-
-          <GoogleDemoDialog open={demoOpen} onOpenChange={setDemoOpen} />
         </div>
       </main>
+
+      {/* ============ CINTA DE CÓDICE ============ */}
+      <div className="relative z-10 -mx-2 -rotate-[1.1deg]">
+        <Marquee items={MARQUEE_ITEMS} />
+      </div>
+
+      <GoogleDemoDialog open={demoOpen} onOpenChange={setDemoOpen} />
     </div>
   )
 }

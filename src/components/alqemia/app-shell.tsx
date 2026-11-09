@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils"
 import { useAppStore, type AppView } from "@/lib/store"
 import { useMe } from "@/hooks/use-me"
 import { UserAvatar } from "@/components/alqemia/avatar"
+import { AlchemyBackground } from "@/components/alqemia/fx/alchemy-background"
 import { FeedView } from "@/components/alqemia/feed/feed-view"
 import { ClassroomView } from "@/components/alqemia/classroom/classroom-view"
 import { ToolsView } from "@/components/alqemia/tools/tools-view"
@@ -111,7 +112,10 @@ export function AppShell() {
   }
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="relative min-h-dvh bg-background">
+      {/* Fondo alquímico ambiente (detrás de todo el contenido) */}
+      <AlchemyBackground density={0.4} className="fixed inset-0 z-0" />
+
       {/* ============ SIDEBAR DESKTOP ============ */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-zinc-950 lg:flex">
         <div className="flex items-center gap-3 p-5">
@@ -247,7 +251,7 @@ export function AppShell() {
       </header>
 
       {/* ============ CONTENIDO ============ */}
-      <div className="lg:pl-64">
+      <div className="relative z-10 lg:pl-64">
         <main className="px-4 pb-24 pt-4 sm:px-6 sm:pt-6 lg:px-8 lg:pb-10">
           <div key={view} className="animate-view">
             {view === "feed" && <FeedView />}
@@ -277,9 +281,17 @@ export function AppShell() {
               )}
             >
               <span className="relative">
-                <Icon className="h-5 w-5" aria-hidden />
+                <span
+                  key={`${key}-${String(active)}`}
+                  className={cn("flex", active && "animate-chip-pop")}
+                >
+                  <Icon className="h-5 w-5" aria-hidden />
+                </span>
                 {active && (
-                  <span className="absolute -bottom-[7px] left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-gold-deep" aria-hidden />
+                  <span
+                    className="animate-chip-pop absolute -bottom-[7px] left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-gold-deep"
+                    aria-hidden
+                  />
                 )}
               </span>
               {label}
