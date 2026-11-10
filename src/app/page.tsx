@@ -5,6 +5,7 @@
 // Splash → AuthView → OnboardingFlow → AppShell
 // ============================================================
 
+import { useEffect } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useQueryClient } from "@tanstack/react-query"
 import { ShieldAlert, Loader2 } from "lucide-react"
@@ -61,6 +62,15 @@ export default function Home() {
   const { data, isLoading, isError } = useMe()
   const queryClient = useQueryClient()
 
+  // Sesión huérfana: la cookie apunta a una cuenta que ya no existe en la BD
+  // (p. ej. tras un reset del seed). Se cierra la sesión automáticamente y
+  // el usuario vuelve a La Primera Puerta en lugar de quedarse en el splash.
+  useEffect(() => {
+    if (status === "authenticated" && isError) {
+      void signOut({ callbackUrl: "/" })
+    }
+  }, [status, isError])
+
   // 1) Sesión cargando
   if (status === "loading") return <Splash />
 
@@ -74,13 +84,9 @@ export default function Home() {
     )
   }
 
-  // 3) Con sesión: perfil fresco cargando
-  if (isLoading || !data) return <Splash />
-
-  // 3b) Error al cargar el perfil (p.ej. sesión inválida)
-  if (isError) {
-    return <BlockedScreen />
-  }
+  // 3) Con sesión: perfil fresco cargando (incluye el cierre automático de
+  // sesiones huérfanas mientras se completa el signOut)
+  if (isLoading || isError || !data) return <Splash />
 
   const user = data.user
 

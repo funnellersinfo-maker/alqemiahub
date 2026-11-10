@@ -21,6 +21,19 @@ export const metadata: Metadata = {
     "La academia premium de marketing y ecommerce. Comunidad, programas grabados, herramientas y gamificación para transmutar tu negocio.",
   applicationName: "ALQEMIA",
   authors: [{ name: "ALQEMIA" }],
+  openGraph: {
+    title: "ALQEMIA — Hub de Marketing & Ecommerce",
+    description:
+      "Comunidad, programas grabados, herramientas y gamificación para transmutar tu negocio en ventas.",
+    type: "website",
+    locale: "es",
+    siteName: "ALQEMIA",
+  },
+  twitter: {
+    card: "summary",
+    title: "ALQEMIA — Hub de Marketing & Ecommerce",
+    description: "Donde el marketing se transmuta en ventas.",
+  },
 };
 
 export const viewport: Viewport = {
