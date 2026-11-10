@@ -1,0 +1,29 @@
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "alqemiahub",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "HUB_DB",
+        "class_name": "HubDB",
+        "script_name": "alqemia-db"
+      }
+    ]
+  },
+  "vars": {
+    "NEXTAUTH_URL": "https://alqemiahub.mastershop-funnellers.workers.dev",
+    "ADMIN_ACCESS_KEY": "ALQEMIA-2025",
+    "DB_API_URL": ""
+  },
+  "observability": {
+    "enabled": true
+  },
+  "workers_dev": true
+}

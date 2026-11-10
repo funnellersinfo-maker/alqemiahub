@@ -1,0 +1,30 @@
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "alqemia-db",
+  "main": "index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "HUB_DB",
+        "class_name": "HubDB"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["HubDB"]
+    }
+  ],
+  "rules": [
+    {
+      "type": "Text",
+      "globs": ["**/*.sql"]
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

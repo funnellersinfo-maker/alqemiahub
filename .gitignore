@@ -62,3 +62,9 @@ upload/
 # runtime
 *.pid
 server.log
+
+# cloudflare deploy
+.open-next/
+.wrangler/
+.env
+*.secret*

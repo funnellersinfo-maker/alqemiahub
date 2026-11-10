@@ -1,0 +1,19 @@
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "alqemiahub",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "NEXTAUTH_URL": "http://localhost:8788",
+    "ADMIN_ACCESS_KEY": "ALQEMIA-2025",
+    "DB_API_URL": "http://localhost:8787"
+  },
+  "observability": {
+    "enabled": false
+  }
+}

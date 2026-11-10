@@ -23,10 +23,43 @@ bun run dev                 # http://localhost:3000
 
 ### Cuentas demo
 
+- Admin: `admin@alqemia.com` · contraseña `alqemia123`
 - Miembro: `valeria@alqemia.com` · contraseña `alqemia123`
 - Todos los miembros seed usan `alqemia123`
 - Usuario suspendido (para probar el bloqueo): `carlos@alqemia.com`
 - **Panel admin**: tuerca en el menú → clave `ALQEMIA-2025` (configurable en `ADMIN_ACCESS_KEY`)
+
+## Deploy en Cloudflare (producción)
+
+La plataforma vive en dos Workers del mismo account:
+
+| Worker | URL | Rol |
+| --- | --- | --- |
+| `alqemiahub` | https://alqemiahub.mastershop-funnellers.workers.dev | La app completa (Next.js 16 vía OpenNext) |
+| `alqemia-db` | https://alqemia-db.mastershop-funnellers.workers.dev | Base de datos (Durable Object SQLite) — solo `/health` público |
+
+Arquitectura de datos: `Prisma 6 (driverAdapters)` → `@prisma/adapter-d1` → shim `RemoteSqlDatabase` (`src/lib/cf-sql.ts`) → Durable Object `HubDB` (`db-worker/index.ts`) con SQLite real y auto-inicialización (esquema + datos demo incluidos en `db-worker/schema.sql` y `db-worker/seed.sql`).
+
+### Redesplegar
+
+```bash
+bun install
+# 1) Base de datos (solo si cambió el esquema o el seed)
+cd db-worker && bunx wrangler deploy && cd ..
+# 2) Aplicación
+bunx opennextjs-cloudflare build
+bunx wrangler deploy
+```
+
+Variables/secretos del worker `alqemiahub`:
+
+- `NEXTAUTH_URL` (var) — URL pública
+- `NEXTAUTH_SECRET` (secret) — firma de sesiones
+- `ADMIN_ACCESS_KEY` (var) — clave del panel admin
+
+El worker `alqemia-db` expone `POST /admin/reseed` (interno) para restaurar los datos demo; requiere `DB_ADMIN_KEY`.
+
+> Nota: la herramienta CopyLab IA depende del SDK del entorno de desarrollo; en Cloudflare responde con un mensaje de no disponible. Todo lo demás (registro, login, muro, classroom, gamificación, admin, métricas) funciona 100% en producción.
 
 ### OAuth de Google
 

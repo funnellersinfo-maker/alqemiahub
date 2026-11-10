@@ -1,8 +1,18 @@
 // POST /api/tools/copylab — Generador de copy con IA (3 variantes)
 import { NextRequest } from "next/server"
 import { requireActiveUser, errorResponse, handleApiError } from "@/lib/api-helpers"
-import ZAI from "z-ai-web-dev-sdk"
 import type { CopyLabType } from "@/lib/types"
+
+// En el deploy de Cloudflare el SDK de IA del sandbox no está disponible.
+// La importación es diferida y no estática: si falla, se responde un mensaje amable.
+async function getZAI(): Promise<{ chat: { completions: { create: (opts: unknown) => Promise<{ choices: { message: { content?: string } }[] }> } } }> {
+  const spec = ["z-ai", "web-dev-sdk"].join("-")
+  const mod = (await import(/* webpackIgnore: true */ /* turbopackIgnore: true */ spec).catch(() => null)) as {
+    default?: { create: () => Promise<unknown> }
+  } | null
+  if (!mod?.default?.create) throw new Error("CopyLab IA no disponible en este entorno")
+  return (await mod.default.create()) as never
+}
 
 const COPY_TYPES: readonly CopyLabType[] = ["product", "social", "ad", "email"] as const
 
@@ -95,7 +105,7 @@ export async function POST(req: NextRequest) {
     // Generación con SDK (solo backend) + timeout de 60s
     let raw = ""
     try {
-      const zai = await ZAI.create()
+      const zai = await getZAI()
       const request = zai.chat.completions.create({
         messages: [
           { role: "assistant", content: SYSTEM_PROMPT },
