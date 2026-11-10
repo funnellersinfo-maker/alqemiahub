@@ -34,6 +34,7 @@ const DEMO_PASSWORD = hashPassword("alqemia123")
 // Emails que pertenecen al seed: solo estos se borran y recrean.
 // Las cuentas reales creadas por usuarios (registro/Google) se preservan.
 const SEED_EMAILS = [
+  "admin@alqemia.com",
   "valeria@alqemia.com",
   "diego@alqemia.com",
   "camila@alqemia.com",
@@ -206,6 +207,7 @@ async function main() {
 
   console.log("Creando miembros...")
   const users = [
+    { name: "Admin ALQEMIA", email: "admin@alqemia.com", headline: "Equipo ALQEMIA", avatarColor: "#d4af37", xp: 2400, bio: "Cuenta oficial del equipo ALQEMIA. Gestiono la comunidad, el contenido y las métricas del Hub.", goal: "Hacer crecer la comunidad", createdAt: daysAgo(30, 0), lastActiveAt: hoursAgo(0), role: "ADMIN" },
     { name: "Valeria Ríos", email: "valeria@alqemia.com", headline: "Ecommerce · Moda", avatarColor: "#d97706", xp: 1240, bio: "Fundé mi marca de moda hace 2 años. Aquí estoy para escalar con sistemas y sin improvisar.", goal: "Llevar mi tienda a 7 cifras", createdAt: daysAgo(13, 5), lastActiveAt: hoursAgo(1) },
     { name: "Diego Márquez", email: "diego@alqemia.com", headline: "Tráfico · Meta Ads", avatarColor: "#059669", xp: 2110, bio: "Especialista en tráfico. Ayudo a tiendas a escalar con creatividades que funcionan.", goal: "Armar mi agencia de tráfico", createdAt: daysAgo(12, 2), lastActiveAt: hoursAgo(3) },
     { name: "Camila Torres", email: "camila@alqemia.com", headline: "Marketing de contenidos", avatarColor: "#e11d48", xp: 660, bio: "Creo contenido para marcas de belleza. En camino de convertir mi perfil en un negocio.", goal: "Duplicar mi comunidad en 90 días", createdAt: daysAgo(11, 8), lastActiveAt: hoursAgo(6) },
@@ -233,6 +235,7 @@ async function main() {
         xp: u.xp,
         profileCompleted: true,
         status: u.status ?? "ACTIVE",
+        role: u.role ?? "USER",
         createdAt: u.createdAt,
         lastActiveAt: u.lastActiveAt,
       },
