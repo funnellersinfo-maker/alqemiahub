@@ -40,6 +40,24 @@ type SqlLike = {
   }
 }
 
+/** Divide un script SQL en sentencias individuales y quita las líneas
+ *  de comentario (-- ...). Los INSERT del seed son de una línea y el
+ *  DDL termina en ";\n", así que dividir por ";" + salto es seguro. */
+function splitStatements(script: string): string[] {
+  return script
+    .split(/;\s*(?:\n|$)/)
+    .map((s) => s.replace(/^\s*--.*$/gm, "").trim())
+    .filter((s) => s.length > 0)
+}
+
+/** Ejecuta un script SQL sentencia por sentencia (modo robusto). */
+function execScript(sql: SqlLike, script: string): void {
+  for (const stmt of splitStatements(script)) {
+    if (stmt.startsWith("PRAGMA")) continue // per-conexión; no aplica aquí
+    sql.exec(stmt)
+  }
+}
+
 export class HubDB extends DurableObject {
   private initialized = false
 
@@ -59,8 +77,8 @@ export class HubDB extends DurableObject {
     )
     const row = cursor.toArray()[0] as { n: number } | undefined
     if (!row || row.n === 0) {
-      this.sql.exec(SCHEMA_SQL)
-      this.sql.exec(SEED_SQL)
+      execScript(this.sql, SCHEMA_SQL)
+      execScript(this.sql, SEED_SQL)
     }
     this.initialized = true
   }
@@ -84,17 +102,24 @@ export class HubDB extends DurableObject {
         return json({ ok: false, error: "bad-request" }, 400)
       }
       if (key !== expected) return json({ ok: false, error: "unauthorized" }, 401)
-      const tables = this.sql
-        .exec(
-          "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'"
-        )
-        .toArray() as { name: string }[]
-      const dropAll =
-        tables.map((t) => `DROP TABLE IF EXISTS "${t.name}";`).join("\n") + "\nDELETE FROM sqlite_sequence;"
-      this.sql.exec(dropAll)
-      this.initialized = false
-      this.ensureInit()
-      return json({ ok: true, reseeded: true })
+      try {
+        // Orden inverso al de creación: los hijos (FK) se eliminan antes
+        // que sus padres para no violar claves foráneas.
+        const tables = this.sql
+          .exec(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY rowid DESC"
+          )
+          .toArray() as { name: string }[]
+        for (const t of tables) {
+          this.sql.exec(`DROP TABLE IF EXISTS "${t.name}"`)
+        }
+        this.initialized = false
+        this.ensureInit()
+        return json({ ok: true, reseeded: true })
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e)
+        return json({ ok: false, error: `reseed-failed: ${message}` })
+      }
     }
 
     if (url.pathname === "/sql" && req.method === "POST") {
@@ -134,13 +159,13 @@ export class HubDB extends DurableObject {
   }
 }
 
-/** Enrutador público del worker alqemia-db. Por seguridad SOLO se
- *  expone /health: el worker principal (alqemiahub) habla con el DO
- *  de forma interna mediante el binding, sin pasar por aquí. */
+/** Enrutador público del worker alqemia-db. Solo /health y /admin/reseed
+ *  (protegido por DB_ADMIN_KEY) quedan expuestos: el worker principal
+ *  (alqemiahub) habla con el DO de forma interna mediante el binding. */
 const workerEntry: ExportedHandler<Env> = {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url)
-    if (url.pathname === "/health") {
+    if (url.pathname === "/health" || url.pathname === "/admin/reseed") {
       const id = env.HUB_DB.idFromName("primary")
       const stub = env.HUB_DB.get(id)
       return stub.fetch(req)
