@@ -75,15 +75,6 @@ function MicrosoftLogo({ className }: { className?: string }) {
   )
 }
 
-// Logo de Apple (glifo, usa color del texto)
-function AppleLogo({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
-      <path d="M17.05 20.28c-.98.95-2.05.86-3.08.41-1.09-.47-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.41C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8.79-.16 1.91-.86 3.24-.77 1.53.12 2.67.73 3.4 1.82-3.05 1.83-2.56 5.85.09 6.94-.58 1.54-1.34 3.06-2.81 4.18zm-4.9-13.2c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-    </svg>
-  )
-}
-
 /** Botón social: activo → OAuth real; inactivo → se activa con las claves. */
 function SocialButton({
   provider,
@@ -92,11 +83,11 @@ function SocialButton({
   ready,
   onTry,
 }: {
-  provider: "google" | "microsoft" | "apple"
+  provider: "google" | "microsoft"
   label: string
   logo: React.ReactNode
   ready: boolean
-  onTry: (provider: "google" | "microsoft" | "apple") => void
+  onTry: (provider: "google" | "microsoft") => void
 }) {
   return (
     <Button
@@ -175,14 +166,10 @@ export function AuthView() {
     void signIn("google", { callbackUrl: "/" })
   }
 
-  function handleSocial(provider: "google" | "microsoft" | "apple") {
+  function handleSocial(provider: "google" | "microsoft") {
     if (provider === "google" && authStatus?.google) return handleGoogle()
     if (provider === "microsoft" && authStatus?.microsoft) {
       void signIn("azure-ad", { callbackUrl: "/" })
-      return
-    }
-    if (provider === "apple" && authStatus?.apple) {
-      void signIn("apple", { callbackUrl: "/" })
       return
     }
     toast.info("Este acceso se activa muy pronto. Mientras tanto, crea tu cuenta con email en 30 segundos.")
@@ -305,13 +292,6 @@ export function AuthView() {
                       label="Continuar con Microsoft"
                       logo={<MicrosoftLogo className="h-4.5 w-4.5" />}
                       ready={authStatus?.microsoft === true}
-                      onTry={handleSocial}
-                    />
-                    <SocialButton
-                      provider="apple"
-                      label="Continuar con Apple"
-                      logo={<AppleLogo className="h-5 w-5" />}
-                      ready={authStatus?.apple === true}
                       onTry={handleSocial}
                     />
                   </div>

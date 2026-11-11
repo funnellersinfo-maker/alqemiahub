@@ -58,7 +58,6 @@ export type MeUser = {
 export type AuthProvidersStatus = {
   google: boolean
   microsoft: boolean
-  apple: boolean
 }
 
 export type MeResponse = {

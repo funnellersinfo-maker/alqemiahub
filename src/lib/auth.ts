@@ -1,10 +1,8 @@
 // ============================================================
 // ALQEMIA HUB — NextAuth
-// Credenciales (email/contraseña) + OAuth real:
+// Credenciales (email/contraseña) + OAuth real (gratuitos):
 //   · Google     (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET)
 //   · Microsoft  (AZURE_CLIENT_ID / AZURE_CLIENT_SECRET)
-//   · Apple      (APPLE_CLIENT_ID / APPLE_CLIENT_SECRET /
-//                 APPLE_TEAM_ID / APPLE_KEY_ID / APPLE_PRIVATE_KEY)
 // Los proveedores aparecen automáticamente al definir sus
 // variables; el primer login social crea la cuenta del miembro.
 // ============================================================
@@ -13,7 +11,6 @@ import { getServerSession, NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
 import AzureADProvider from "next-auth/providers/azure-ad"
-import AppleProvider from "next-auth/providers/apple"
 import type { Account, User as NextAuthUser } from "next-auth"
 import { db } from "@/lib/db"
 import { verifyPassword } from "@/lib/password"
@@ -88,17 +85,6 @@ if (process.env.AZURE_CLIENT_ID && process.env.AZURE_CLIENT_SECRET) {
       clientSecret: process.env.AZURE_CLIENT_SECRET,
       // "common" admite cuentas personales (outlook/hotmail/live) y de trabajo
       tenantId: process.env.AZURE_TENANT_ID ?? "common",
-      allowDangerousEmailAccountLinking: true,
-    })
-  )
-}
-
-if (process.env.APPLE_CLIENT_ID && process.env.APPLE_CLIENT_SECRET) {
-  providers.unshift(
-    AppleProvider({
-      clientId: process.env.APPLE_CLIENT_ID,
-      // JWT de cliente generado desde la clave .p8 (Apple lo exige; vence cada ~6 meses)
-      clientSecret: process.env.APPLE_CLIENT_SECRET,
       allowDangerousEmailAccountLinking: true,
     })
   )
