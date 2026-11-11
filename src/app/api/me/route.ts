@@ -13,6 +13,7 @@ async function buildMeUser(userId: string): Promise<MeUser> {
     id: user.id,
     name: user.name,
     email: user.email,
+    role: user.role === "ADMIN" ? "ADMIN" : "USER",
     image: user.image,
     avatarColor: user.avatarColor,
     headline: user.headline,

@@ -40,6 +40,7 @@ export type MeUser = {
   id: string
   name: string
   email: string
+  role: "USER" | "ADMIN"
   image: string | null
   avatarColor: string | null
   headline: string | null

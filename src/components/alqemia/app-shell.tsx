@@ -102,7 +102,8 @@ export function AppShell() {
   const level = user?.level
 
   const openTuerca = () => {
-    if (adminUnlocked) setView("admin")
+    // El titular (rol ADMIN) entra directo; el resto necesita la clave
+    if (adminUnlocked || user?.role === "ADMIN") setView("admin")
     else setAdminGateOpen(true)
   }
 
