@@ -8,6 +8,7 @@ import { toast } from "sonner"
 
 import type { ApiErrorShape } from "@/lib/types"
 import { useMe } from "@/hooks/use-me"
+import { EXPERIENCE_OPTIONS } from "@/lib/profile"
 import { cn } from "@/lib/utils"
 import { AVATAR_COLORS, UserAvatar } from "@/components/alqemia/avatar"
 import { Button } from "@/components/ui/button"
@@ -71,6 +72,7 @@ export function EditProfileDialog({
   const [headline, setHeadline] = useState("")
   const [bio, setBio] = useState("")
   const [goal, setGoal] = useState("")
+  const [experience, setExperience] = useState("")
   const [imageDataURL, setImageDataURL] = useState<string | null>(null)
   const [avatarColor, setAvatarColor] = useState<string>(AVATAR_COLORS[0])
   const [saving, setSaving] = useState(false)
@@ -82,6 +84,7 @@ export function EditProfileDialog({
       setHeadline(user.headline ?? "")
       setBio(user.bio ?? "")
       setGoal(user.goal ?? "")
+      setExperience(user.experience ?? "")
       setImageDataURL(user.image)
       setAvatarColor(user.avatarColor ?? AVATAR_COLORS[0])
       setSaving(false)
@@ -116,6 +119,7 @@ export function EditProfileDialog({
         bio: bio.trim(),
         goal: goal.trim(),
       }
+      if (experience) body.experience = experience
       // Solo incluimos "image" cuando es un dataURL válido (subida nueva).
       // Para quitar la foto simplemente no se envía "image" y viaja avatarColor.
       if (
@@ -240,6 +244,22 @@ export function EditProfileDialog({
                 maxLength={240}
                 placeholder="Ej: Lanzar mi tienda · Escalar ventas"
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-experience">Nivel de experiencia</Label>
+              <select
+                id="edit-experience"
+                value={experience}
+                onChange={(e) => setExperience(e.target.value)}
+                className="h-9 w-full rounded-md border border-zinc-800 bg-zinc-950/70 px-3 text-sm text-zinc-100 focus-visible:border-gold/50 focus-visible:ring-gold/25"
+              >
+                <option value="">Sin definir</option>
+                {EXPERIENCE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="edit-bio">Sobre mí</Label>

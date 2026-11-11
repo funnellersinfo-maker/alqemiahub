@@ -80,7 +80,18 @@ export class HubDB extends DurableObject {
       execScript(this.sql, SCHEMA_SQL)
       execScript(this.sql, SEED_SQL)
     }
+    this.ensureMigrations()
     this.initialized = true
+  }
+
+  /** Migraciones idempotentes para bases ya inicializadas (no destruye datos). */
+  private ensureMigrations(): void {
+    // v1: columna User.experience (quiz de onboarding)
+    try {
+      this.sql.exec('ALTER TABLE "User" ADD COLUMN "experience" TEXT')
+    } catch {
+      // La columna ya existe: nada que hacer
+    }
   }
 
   async fetch(req: Request): Promise<Response> {

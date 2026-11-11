@@ -12,6 +12,7 @@ CREATE TABLE "User" (
     "headline" TEXT,
     "bio" TEXT,
     "goal" TEXT,
+    "experience" TEXT,
     "profileCompleted" BOOLEAN NOT NULL DEFAULT false,
     "xp" INTEGER NOT NULL DEFAULT 0,
     "lastActiveAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

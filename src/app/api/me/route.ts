@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { requireUser, errorResponse, handleApiError } from "@/lib/api-helpers"
 import { awardXpFor, ACHIEVEMENTS, getLevelInfo } from "@/lib/gamification"
+import { isExperienceValue } from "@/lib/profile"
 import type { MeUser, XpEvent } from "@/lib/types"
 
 async function buildMeUser(userId: string): Promise<MeUser> {
@@ -19,6 +20,7 @@ async function buildMeUser(userId: string): Promise<MeUser> {
     headline: user.headline,
     bio: user.bio,
     goal: user.goal,
+    experience: user.experience,
     xp: user.xp,
     status: user.status === "BLOCKED" ? "BLOCKED" : "ACTIVE",
     profileCompleted: user.profileCompleted,
@@ -68,6 +70,12 @@ export async function PATCH(req: NextRequest) {
     if (typeof body.goal === "string") {
       if (body.goal.length > 240) return errorResponse(400, "El objetivo es demasiado largo (máx 240)")
       data.goal = body.goal.trim()
+    }
+    if (typeof body.experience === "string") {
+      if (!isExperienceValue(body.experience)) {
+        return errorResponse(400, "Nivel de experiencia inválido")
+      }
+      data.experience = body.experience
     }
     if (typeof body.avatarColor === "string") {
       if (!/^#[0-9a-fA-F]{6}$/.test(body.avatarColor)) return errorResponse(400, "Color de avatar inválido")

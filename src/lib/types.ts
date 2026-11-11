@@ -46,12 +46,19 @@ export type MeUser = {
   headline: string | null
   bio: string | null
   goal: string | null
+  experience: string | null
   xp: number
   status: UserStatus
   profileCompleted: boolean
   createdAt: string
   level: LevelInfo
   achievements: MeAchievement[]
+}
+
+export type AuthProvidersStatus = {
+  google: boolean
+  microsoft: boolean
+  apple: boolean
 }
 
 export type MeResponse = {

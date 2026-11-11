@@ -78,9 +78,39 @@ El worker `alqemia-db` expone `POST /admin/reseed` (interno) para restaurar el c
 
 > Nota: la herramienta CopyLab IA depende del SDK del entorno de desarrollo; en Cloudflare responde con un mensaje de no disponible. Todo lo demás (registro, login, muro, classroom, gamificación, admin, métricas) funciona 100% en producción.
 
-### OAuth de Google
+### Acceso social: Google, Microsoft y Apple
 
-El botón "Continuar con Google" solo aparece con `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` configurados (OAuth real). Sin esas variables, el registro y login son 100% por email y contraseña.
+Los tres botones están siempre visibles en la puerta de entrada. Cada proveedor se **activa automáticamente** al definir sus variables en el worker (`bunx wrangler secret put ... --name alqemiahub`): el botón pasa de "Pronto" a totalmente funcional y el primer login social crea la cuenta del miembro (sin contraseña), que luego completa el Ritual de Iniciación.
+
+URL de redirección a registrar en cada proveedor (la del worker, no la corta):
+
+```
+https://alqemiahub.mastershop-funnellers.workers.dev/api/auth/callback/google
+https://alqemiahub.mastershop-funnellers.workers.dev/api/auth/callback/azure-ad
+https://alqemiahub.mastershop-funnellers.workers.dev/api/auth/callback/apple
+```
+
+**Google (gratis, ~10 min)** — [console.cloud.google.com](https://console.cloud.google.com):
+1. Crea un proyecto → "APIs y servicios" → "Pantalla de consentimiento OAuth" (tipo External, agrega tu email como usuario de prueba).
+2. "Credenciales" → "Crear credenciales" → "ID de cliente de OAuth" → Aplicación web → agrega la URL de redirección de arriba.
+3. `bunx wrangler secret put GOOGLE_CLIENT_ID --name alqemiahub` y `bunx wrangler secret put GOOGLE_CLIENT_SECRET --name alqemiahub`.
+
+**Microsoft (gratis, ~10 min)** — [portal.azure.com](https://portal.azure.com) → "Microsoft Entra ID" → "Registros de aplicaciones" → "Nuevo registro" (tipo: cuentas en cualquier directorio organizativo y cuentas personales de Microsoft):
+1. "Autenticación" → "Agregar plataforma" → Web → la URL de redirección de arriba.
+2. "Certificados y secretos" → "Nuevo secreto de cliente".
+3. `bunx wrangler secret put AZURE_CLIENT_ID --name alqemiahub` y `bunx wrangler secret put AZURE_CLIENT_SECRET --name alqemiahub` (opcional `AZURE_TENANT_ID` para restringir a una organización).
+
+**Apple (requiere Apple Developer Program, US$99/año)** — [developer.apple.com](https://developer.apple.com):
+1. Certificates, IDs & Profiles → "Identifiers" → registra un **Services ID** (ese es el `APPLE_CLIENT_ID`) con la URL de retorno de arriba.
+2. Crea una clave privada (.p8) con la capacidad "Sign In with Apple".
+3. Genera el **client secret JWT** a partir de la .p8 (script: `bal.so/apple-gen-secret`); vence a los ~6 meses.
+4. `bunx wrangler secret put APPLE_CLIENT_ID --name alqemiahub` y `bunx wrangler secret put APPLE_CLIENT_SECRET --name alqemiahub`.
+
+Después de añadir secretos no hace falta redesplegar: el estado se consulta en vivo en `/api/auth/status`.
+
+### Ritual de Iniciación (onboarding gamificado)
+
+La creación de cuenta termina en un quiz de 5 preguntas (avatar → especialidades → objetivos → nivel → bio) con **% de perfil en vivo**: cada pieza vale 20% y el medidor sube con cada respuesta. Al completar: +100 XP, nivel, y celebración. El perfil del usuario muestra su % de completitud y qué falta para el 100% (editable desde el diálogo de perfil, incluido el nivel de experiencia).
 
 ## Estructura
 

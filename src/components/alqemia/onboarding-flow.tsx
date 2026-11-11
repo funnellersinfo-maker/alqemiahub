@@ -1,14 +1,15 @@
 "use client"
 
 // ============================================================
-// ALQEMIA — Onboarding gamificado
-// 3 pasos: avatar → especialidades (varias) → objetivos (varios).
-// Guarda headline = especialidades.join(" · ") y goal = objetivos.join(" · ")
+// ALQEMIA — Ritual de Iniciación (onboarding quiz)
+// 5 preguntas: avatar → especialidades → objetivos → nivel → bio.
+// El % de perfil sube EN VIVO con cada respuesta; al final,
+// +100 XP y perfil transmutado.
 // ============================================================
 
 import { useState, type ChangeEvent, type ReactNode } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { Camera, Check, Loader2, Zap } from "lucide-react"
+import { Camera, Check, Loader2, Sparkles, Zap } from "lucide-react"
 import { toast } from "sonner"
 
 import { AVATAR_COLORS, UserAvatar } from "@/components/alqemia/avatar"
@@ -22,6 +23,7 @@ import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
 import { useMe } from "@/hooks/use-me"
 import { celebrateXp } from "@/lib/store"
+import { EXPERIENCE_OPTIONS, profileCompletion } from "@/lib/profile"
 import { cn } from "@/lib/utils"
 import type { ApiErrorShape, MeResponse } from "@/lib/types"
 
@@ -46,6 +48,7 @@ const GOALS = [
   "Generar ingresos online",
 ]
 
+const TOTAL_STEPS = 5
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
 const MAX_DATAURL_LENGTH = 240_000
 
@@ -148,6 +151,55 @@ function SelectionCounter({ count, singular, plural }: { count: number; singular
   )
 }
 
+// Opción del quiz de nivel (tarjeta tipo radio)
+function QuizOption({
+  label,
+  hint,
+  selected,
+  onSelect,
+}: {
+  label: string
+  hint: string
+  selected: boolean
+  onSelect: () => void
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold active:scale-[0.99]",
+        selected
+          ? "animate-chip-pop border-gold-deep bg-gold/10 shadow-[0_0_22px_-8px_rgba(217,164,65,0.55)]"
+          : "border-zinc-800 hover:border-gold/40"
+      )}
+    >
+      <span
+        className={cn(
+          "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-200",
+          selected ? "border-gold-deep bg-gold/20" : "border-zinc-700"
+        )}
+        aria-hidden="true"
+      >
+        {selected && <Check className="h-3 w-3 text-gold-bright" />}
+      </span>
+      <span className="min-w-0">
+        <span
+          className={cn(
+            "block text-sm font-semibold transition-colors",
+            selected ? "text-gold-bright" : "text-zinc-200"
+          )}
+        >
+          {label}
+        </span>
+        <span className="mt-0.5 block text-xs leading-snug text-zinc-500">{hint}</span>
+      </span>
+    </button>
+  )
+}
+
 // Navegación inferior de cada paso del wizard
 function WizardNav({
   showBack,
@@ -184,6 +236,7 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
   const [specialties, setSpecialties] = useState<string[]>([])
   const [bio, setBio] = useState("")
   const [goals, setGoals] = useState<string[]>([])
+  const [experience, setExperience] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<MeResponse | null>(null)
 
@@ -192,6 +245,17 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
   const previewImage = image ?? user?.image ?? null
   const awardedXp = result?.xp?.awarded ?? 100
   const levelInfo = result?.xp?.level ?? result?.user.level ?? user?.level ?? null
+
+  // % de perfil EN VIVO: cada pieza del ritual vale 20%
+  const liveCompletion = profileCompletion({
+    image: previewImage,
+    avatarColor: step > 0 || avatarColor !== null ? effectiveColor : null,
+    headline: specialties.length > 0 ? specialties.join(" · ") : null,
+    goal: goals.length > 0 ? goals.join(" · ") : null,
+    experience,
+    bio: bio.trim() || null,
+  })
+  const finalCompletion = result ? profileCompletion(result.user) : liveCompletion
 
   async function handleAvatarFile(file: File) {
     if (!file.type.startsWith("image/")) {
@@ -232,12 +296,13 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
   }
 
   async function handleSubmit() {
-    if (specialties.length === 0 || goals.length === 0 || submitting) return
+    if (specialties.length === 0 || goals.length === 0 || !experience || submitting) return
     setSubmitting(true)
     try {
       const body: Record<string, unknown> = {
         headline: specialties.join(" · "),
         goal: goals.join(" · "),
+        experience,
         profileCompleted: true,
       }
       if (image) {
@@ -262,7 +327,7 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
       celebrateXp(data.xp ?? null)
       await queryClient.invalidateQueries({ queryKey: ["me"] })
       setResult(data)
-      setStep(3)
+      setStep(TOTAL_STEPS)
     } catch {
       toast.error("No se pudo guardar tu perfil. Intenta de nuevo")
     } finally {
@@ -270,7 +335,7 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
     }
   }
 
-  const progressValue = step >= 3 ? 100 : (step / 3) * 100
+  const done = step >= TOTAL_STEPS
 
   return (
     <div className="relative flex min-h-dvh flex-col items-center overflow-hidden bg-zinc-950 p-4 sm:p-6">
@@ -286,17 +351,33 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
         />
         <span className="brand-wordmark mt-3 pl-[0.38em] text-sm">ALQEMIA</span>
         <h1 className="font-display mt-3 text-2xl tracking-tight text-zinc-100 sm:text-3xl">
-          Completa tu perfil
+          Ritual de Iniciación
         </h1>
-        <p className="mt-2 text-sm text-zinc-500">3 pasos para desbloquear tu +100 XP</p>
+        <p className="mt-2 text-sm text-zinc-500">
+          5 preguntas para transmutar tu perfil y desbloquear +100 XP
+        </p>
       </div>
 
       <Card className="gate-card animate-fade-up relative z-10 mt-8 w-full max-w-xl gap-0 rounded-2xl border-0 p-6 [animation-delay:0.15s] sm:p-8">
-        <span className="text-xs text-zinc-500">
-          {step >= 3 ? "Perfil completo" : `Paso ${step + 1} de 3`}
-        </span>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs text-zinc-500">
+            {done ? "Ritual completo" : `Pregunta ${step + 1} de ${TOTAL_STEPS}`}
+          </span>
+          <span
+            aria-live="polite"
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold tabular-nums transition-all duration-300",
+              finalCompletion === 100
+                ? "animate-chip-pop border-gold/50 bg-gold/10 text-gold-bright"
+                : "border-zinc-800 text-zinc-400"
+            )}
+          >
+            <Sparkles className="h-3 w-3" aria-hidden="true" />
+            Perfil {finalCompletion}%
+          </span>
+        </div>
         <Progress
-          value={progressValue}
+          value={finalCompletion}
           className="mt-2 [&>div]:bg-gradient-to-r [&>div]:from-gold [&>div]:to-gold-deep"
         />
 
@@ -391,22 +472,6 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
                 ))}
               </div>
 
-              <div className="mt-6">
-                <div className="flex items-baseline justify-between gap-2">
-                  <Label htmlFor="onboarding-bio">Cuéntale a la comunidad quién eres (opcional)</Label>
-                  <span className="shrink-0 text-xs text-zinc-400">{bio.length}/500</span>
-                </div>
-                <Textarea
-                  id="onboarding-bio"
-                  rows={3}
-                  maxLength={500}
-                  placeholder="Ej. Gestor de tiendas Shopify enamorado del copywriting..."
-                  className="mt-2 resize-none border-zinc-800 bg-zinc-950/70 focus-visible:border-gold/50 focus-visible:ring-gold/25"
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                />
-              </div>
-
               <WizardNav showBack onBack={() => setStep(0)}>
                 <Button
                   type="button"
@@ -448,7 +513,84 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
                 <Button
                   type="button"
                   className="btn-gold w-full font-semibold sm:w-auto"
-                  disabled={goals.length === 0 || submitting}
+                  disabled={goals.length === 0}
+                  onClick={() => setStep(3)}
+                >
+                  Continuar ({goals.length})
+                </Button>
+              </WizardNav>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div role="radiogroup" aria-label="Nivel de experiencia">
+              <h2 className="font-display text-lg tracking-tight text-zinc-100">
+                ¿En qué punto estás?
+              </h2>
+              <p className="mt-1 text-sm text-zinc-500">
+                Con tu nivel calibramos las recomendaciones del gremio.
+              </p>
+
+              <div className="mt-5 grid gap-2.5">
+                {EXPERIENCE_OPTIONS.map((opt) => (
+                  <QuizOption
+                    key={opt.value}
+                    label={opt.label}
+                    hint={opt.hint}
+                    selected={experience === opt.value}
+                    onSelect={() => setExperience(opt.value)}
+                  />
+                ))}
+              </div>
+
+              <WizardNav showBack onBack={() => setStep(2)}>
+                <Button
+                  type="button"
+                  className="btn-gold w-full font-semibold sm:w-auto"
+                  disabled={!experience}
+                  onClick={() => setStep(4)}
+                >
+                  Continuar
+                </Button>
+              </WizardNav>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div>
+              <h2 className="font-display text-lg tracking-tight text-zinc-100">
+                Última pregunta
+              </h2>
+              <p className="mt-1 text-sm text-zinc-500">
+                Cuéntale al gremio quién eres. Tu bio vale 20% del perfil.
+              </p>
+
+              <div className="mt-5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <Label htmlFor="onboarding-bio">Tu historia en corto</Label>
+                  <span className="shrink-0 text-xs text-zinc-400">{bio.length}/500</span>
+                </div>
+                <Textarea
+                  id="onboarding-bio"
+                  rows={4}
+                  maxLength={500}
+                  placeholder="Ej. Gestor de tiendas Shopify enamorado del copywriting..."
+                  className="mt-2 resize-none border-zinc-800 bg-zinc-950/70 focus-visible:border-gold/50 focus-visible:ring-gold/25"
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                />
+                {bio.trim().length === 0 && (
+                  <p className="mt-2 text-xs text-zinc-500">
+                    Puedes dejarla vacía, pero con ella llegas al 100% del perfil.
+                  </p>
+                )}
+              </div>
+
+              <WizardNav showBack onBack={() => setStep(3)}>
+                <Button
+                  type="button"
+                  className="btn-gold w-full font-semibold sm:w-auto"
+                  disabled={submitting}
                   onClick={() => void handleSubmit()}
                 >
                   {submitting ? (
@@ -465,27 +607,29 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
             </div>
           )}
 
-          {step >= 3 && (
+          {done && (
             <div className="relative flex flex-col items-center py-4 text-center">
-              <SparkleBurst count={20} distance={104} />
+              <SparkleBurst count={24} distance={112} />
               <div className="animate-portal-in relative flex h-20 w-20 items-center justify-center rounded-full bg-gold/10 shadow-[0_0_50px_-6px_rgba(217,164,65,0.6)] ring-1 ring-gold/40">
-                <Zap className="h-10 w-10 fill-gold text-gold-deep" aria-hidden="true" />
+                <Sparkles className="h-10 w-10 fill-gold text-gold-deep" aria-hidden="true" />
               </div>
-              <p className="font-display animate-fade-up mt-6 text-5xl font-bold tracking-tight [animation-delay:0.1s]">
+              <p className="font-display animate-fade-up mt-6 text-6xl font-bold tracking-tight [animation-delay:0.1s]">
                 <span className="gold-text">
-                  +<CountUp value={awardedXp} /> XP
+                  <CountUp value={finalCompletion} />%
                 </span>
               </p>
-              <h2 className="font-display animate-fade-up mt-2 text-xl tracking-tight text-zinc-100 [animation-delay:0.25s]">
-                Perfil Transmutado
-              </h2>
+              <p className="font-display animate-fade-up mt-1 text-xl tracking-tight text-zinc-100 [animation-delay:0.25s]">
+                +<CountUp value={awardedXp} /> XP · Perfil Transmutado
+              </p>
               {levelInfo && (
                 <div className="animate-fade-up mt-3 [animation-delay:0.4s]">
                   <LevelBadge level={levelInfo} />
                 </div>
               )}
               <p className="animate-fade-up mt-4 max-w-sm text-sm text-zinc-500 [animation-delay:0.5s]">
-                Ya eres parte del gremio. Tu progreso queda registrado para el ranking.
+                {finalCompletion === 100
+                  ? "Perfil al 100%. Ya eres parte del gremio: tu progreso queda registrado para el ranking."
+                  : "Ya eres parte del gremio. Completa tu bio desde tu perfil para llegar al 100%."}
               </p>
               <Button
                 type="button"

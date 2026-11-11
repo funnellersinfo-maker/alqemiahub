@@ -22,11 +22,13 @@ import type { LucideIcon } from "lucide-react"
 import { useMe } from "@/hooks/use-me"
 import { useAppStore } from "@/lib/store"
 import { ACHIEVEMENTS } from "@/lib/levels"
+import { completionChecklist, profileCompletion } from "@/lib/profile"
 import { formatDate, timeAgo } from "@/lib/time"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
+import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { LevelBadge } from "@/components/alqemia/level-badge"
 import { LevelProgress } from "@/components/alqemia/level-progress"
@@ -103,6 +105,55 @@ export function ProfileView() {
           </p>
 
           <LevelProgress level={user.level} className="mt-4" />
+
+          {/* Completitud del perfil */}
+          {(() => {
+            const completion = profileCompletion(user)
+            const missing = completionChecklist(user).filter((c) => !c.done)
+            return (
+              <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                    Perfil completado
+                  </p>
+                  <p
+                    className={cn(
+                      "text-sm font-bold tabular-nums",
+                      completion === 100 ? "gold-text" : "text-zinc-300"
+                    )}
+                  >
+                    {completion}%
+                  </p>
+                </div>
+                <Progress
+                  value={completion}
+                  className="mt-2 h-1.5 [&>div]:bg-gradient-to-r [&>div]:from-gold [&>div]:to-gold-deep"
+                />
+                {completion < 100 && (
+                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] text-zinc-500">Falta:</span>
+                    {missing.map((m) => (
+                      <span
+                        key={m.label}
+                        className="rounded-full border border-zinc-700 px-2 py-0.5 text-[10px] text-zinc-400"
+                      >
+                        {m.label}
+                      </span>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-[11px] text-gold hover:text-gold-bright"
+                      onClick={() => setEditing(true)}
+                    >
+                      Completar
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
 
           <div className="mt-4 grid grid-cols-3 gap-2">
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-3 text-center">

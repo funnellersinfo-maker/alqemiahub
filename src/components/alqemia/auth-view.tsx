@@ -28,14 +28,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
-import type { ApiErrorShape } from "@/lib/types"
+import type { ApiErrorShape, AuthProvidersStatus } from "@/lib/types"
 
 // ----------------------------------------------------------------
-// Estado del OAuth de Google en el servidor
+// Estado del OAuth social en el servidor
 // ----------------------------------------------------------------
-type AuthStatusResponse = { googleConfigured: boolean }
-
-async function fetchAuthStatus(): Promise<AuthStatusResponse> {
+async function fetchAuthStatus(): Promise<AuthProvidersStatus> {
   const res = await fetch("/api/auth/status")
   if (!res.ok) throw new Error("No se pudo consultar el estado de autenticación")
   return res.json()
@@ -62,6 +60,65 @@ function GoogleLogo({ className }: { className?: string }) {
         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
       />
     </svg>
+  )
+}
+
+// Logo de Microsoft (cuatro cuadros oficiales)
+function MicrosoftLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 23 23" className={className} aria-hidden="true">
+      <path fill="#F25022" d="M1 1h10v10H1z" />
+      <path fill="#7FBA00" d="M12 1h10v10H12z" />
+      <path fill="#00A4EF" d="M1 12h10v10H1z" />
+      <path fill="#FFB900" d="M12 12h10v10H12z" />
+    </svg>
+  )
+}
+
+// Logo de Apple (glifo, usa color del texto)
+function AppleLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M17.05 20.28c-.98.95-2.05.86-3.08.41-1.09-.47-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.41C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8.79-.16 1.91-.86 3.24-.77 1.53.12 2.67.73 3.4 1.82-3.05 1.83-2.56 5.85.09 6.94-.58 1.54-1.34 3.06-2.81 4.18zm-4.9-13.2c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+    </svg>
+  )
+}
+
+/** Botón social: activo → OAuth real; inactivo → se activa con las claves. */
+function SocialButton({
+  provider,
+  label,
+  logo,
+  ready,
+  onTry,
+}: {
+  provider: "google" | "microsoft" | "apple"
+  label: string
+  logo: React.ReactNode
+  ready: boolean
+  onTry: (provider: "google" | "microsoft" | "apple") => void
+}) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      aria-label={ready ? label : `${label} (se activa pronto)`}
+      className={cn(
+        "h-11 w-full gap-2.5 border-zinc-800 bg-zinc-950/60 transition-all",
+        ready
+          ? "text-zinc-200 hover:border-gold/40 hover:bg-zinc-900/80 hover:shadow-[0_0_24px_-8px_rgba(217,164,65,0.4)]"
+          : "text-zinc-500 hover:bg-zinc-950/60"
+      )}
+      onClick={() => onTry(provider)}
+    >
+      {logo}
+      <span className="flex-1 text-left text-sm font-medium">{label}</span>
+      {!ready && (
+        <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+          Pronto
+        </span>
+      )}
+    </Button>
   )
 }
 
@@ -97,12 +154,11 @@ function EmailDivider() {
 export function AuthView() {
   const [tab, setTab] = useState<"login" | "register">("login")
 
-  const { data: authStatus } = useQuery<AuthStatusResponse>({
+  const { data: authStatus } = useQuery<AuthProvidersStatus>({
     queryKey: ["auth-status"],
     queryFn: fetchAuthStatus,
+    staleTime: 5 * 60 * 1000,
   })
-
-  const googleReady = authStatus?.googleConfigured === true
 
   // Login con email
   const [loginEmail, setLoginEmail] = useState("")
@@ -117,6 +173,19 @@ export function AuthView() {
 
   function handleGoogle() {
     void signIn("google", { callbackUrl: "/" })
+  }
+
+  function handleSocial(provider: "google" | "microsoft" | "apple") {
+    if (provider === "google" && authStatus?.google) return handleGoogle()
+    if (provider === "microsoft" && authStatus?.microsoft) {
+      void signIn("azure-ad", { callbackUrl: "/" })
+      return
+    }
+    if (provider === "apple" && authStatus?.apple) {
+      void signIn("apple", { callbackUrl: "/" })
+      return
+    }
+    toast.info("Este acceso se activa muy pronto. Mientras tanto, crea tu cuenta con email en 30 segundos.")
   }
 
   async function handleLogin(e: FormEvent<HTMLFormElement>) {
@@ -223,21 +292,31 @@ export function AuthView() {
                 </TabsTrigger>
               </TabsList>
 
-              {googleReady && (
-                <>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="mt-4 h-11 w-full gap-2 border-zinc-800 bg-zinc-950/60 transition-all hover:border-gold/40 hover:bg-zinc-900/80 hover:shadow-[0_0_24px_-8px_rgba(217,164,65,0.4)]"
-                    onClick={handleGoogle}
-                  >
-                    <GoogleLogo className="h-5 w-5" />
-                    Continuar con Google
-                  </Button>
+              <div className="mt-4 grid w-full gap-2.5">
+                    <SocialButton
+                      provider="google"
+                      label="Continuar con Google"
+                      logo={<GoogleLogo className="h-5 w-5" />}
+                      ready={authStatus?.google === true}
+                      onTry={handleSocial}
+                    />
+                    <SocialButton
+                      provider="microsoft"
+                      label="Continuar con Microsoft"
+                      logo={<MicrosoftLogo className="h-4.5 w-4.5" />}
+                      ready={authStatus?.microsoft === true}
+                      onTry={handleSocial}
+                    />
+                    <SocialButton
+                      provider="apple"
+                      label="Continuar con Apple"
+                      logo={<AppleLogo className="h-5 w-5" />}
+                      ready={authStatus?.apple === true}
+                      onTry={handleSocial}
+                    />
+                  </div>
 
                   <EmailDivider />
-                </>
-              )}
 
               <TabsContent value="login" className="mt-0 data-[state=active]:animate-view">
                 <form onSubmit={handleLogin} className="space-y-4">
