@@ -13,14 +13,12 @@ import { useQuery } from "@tanstack/react-query"
 import {
   GraduationCap,
   Loader2,
-  Sparkles,
   Users,
   Wrench,
   type LucideIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 
-import { GoogleDemoDialog } from "@/components/alqemia/google-demo-dialog"
 import { AlchemyBackground } from "@/components/alqemia/fx/alchemy-background"
 import { GoldenPortal } from "@/components/alqemia/fx/golden-portal"
 import { KineticWordmark } from "@/components/alqemia/fx/kinetic-wordmark"
@@ -80,9 +78,6 @@ const MARQUEE_ITEMS = [
   "NUEVO NIVEL, NUEVA ALQUIMIA",
 ]
 
-const DEMO_EMAIL = "valeria@alqemia.com"
-const DEMO_PASSWORD = "alqemia123"
-
 const INPUT_GOLD =
   "h-11 border-zinc-800 bg-zinc-950/70 transition-all focus-visible:border-gold/50 focus-visible:ring-gold/25 focus-visible:shadow-[0_0_20px_-6px_rgba(217,164,65,0.45)]"
 
@@ -101,12 +96,13 @@ function EmailDivider() {
 
 export function AuthView() {
   const [tab, setTab] = useState<"login" | "register">("login")
-  const [demoOpen, setDemoOpen] = useState(false)
 
   const { data: authStatus } = useQuery<AuthStatusResponse>({
     queryKey: ["auth-status"],
     queryFn: fetchAuthStatus,
   })
+
+  const googleReady = authStatus?.googleConfigured === true
 
   // Login con email
   const [loginEmail, setLoginEmail] = useState("")
@@ -120,11 +116,7 @@ export function AuthView() {
   const [regLoading, setRegLoading] = useState(false)
 
   function handleGoogle() {
-    if (authStatus?.googleConfigured) {
-      void signIn("google", { callbackUrl: "/" })
-    } else {
-      setDemoOpen(true)
-    }
+    void signIn("google", { callbackUrl: "/" })
   }
 
   async function handleLogin(e: FormEvent<HTMLFormElement>) {
@@ -176,12 +168,6 @@ export function AuthView() {
     } finally {
       setRegLoading(false)
     }
-  }
-
-  function applyDemoAccount() {
-    setLoginEmail(DEMO_EMAIL)
-    setLoginPassword(DEMO_PASSWORD)
-    setTab("login")
   }
 
   return (
@@ -237,17 +223,21 @@ export function AuthView() {
                 </TabsTrigger>
               </TabsList>
 
-              <Button
-                type="button"
-                variant="outline"
-                className="mt-4 h-11 w-full gap-2 border-zinc-800 bg-zinc-950/60 transition-all hover:border-gold/40 hover:bg-zinc-900/80 hover:shadow-[0_0_24px_-8px_rgba(217,164,65,0.4)]"
-                onClick={handleGoogle}
-              >
-                <GoogleLogo className="h-5 w-5" />
-                Continuar con Google
-              </Button>
+              {googleReady && (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-4 h-11 w-full gap-2 border-zinc-800 bg-zinc-950/60 transition-all hover:border-gold/40 hover:bg-zinc-900/80 hover:shadow-[0_0_24px_-8px_rgba(217,164,65,0.4)]"
+                    onClick={handleGoogle}
+                  >
+                    <GoogleLogo className="h-5 w-5" />
+                    Continuar con Google
+                  </Button>
 
-              <EmailDivider />
+                  <EmailDivider />
+                </>
+              )}
 
               <TabsContent value="login" className="mt-0 data-[state=active]:animate-view">
                 <form onSubmit={handleLogin} className="space-y-4">
@@ -284,26 +274,6 @@ export function AuthView() {
                     Cruzar la puerta
                   </Button>
                 </form>
-
-                {/* Cuenta demo */}
-                <div className="mt-4 rounded-xl border border-dashed border-gold/40 bg-gold/[0.07] p-3 text-xs text-zinc-400">
-                  <p className="flex items-start gap-1.5">
-                    <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" aria-hidden="true" />
-                    <span className="min-w-0">
-                      Miembro demo: <span className="font-medium text-zinc-200">{DEMO_EMAIL}</span> ·{" "}
-                      <span className="font-medium text-zinc-200">{DEMO_PASSWORD}</span>
-                    </span>
-                  </p>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={applyDemoAccount}
-                    className="mt-2 w-full text-gold-bright hover:bg-gold/10 hover:text-gold-bright sm:ml-auto sm:mt-0 sm:w-auto"
-                  >
-                    Usar
-                  </Button>
-                </div>
               </TabsContent>
 
               <TabsContent value="register" className="mt-0 data-[state=active]:animate-view">
@@ -374,7 +344,6 @@ export function AuthView() {
         <Marquee items={MARQUEE_ITEMS} />
       </div>
 
-      <GoogleDemoDialog open={demoOpen} onOpenChange={setDemoOpen} />
     </div>
   )
 }

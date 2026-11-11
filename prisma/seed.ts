@@ -29,7 +29,16 @@ function daysAgo(d: number, extraH = 0): Date {
   return new Date(Date.now() - d * 24 * 3600_000 - extraH * 3600_000)
 }
 
-const DEMO_PASSWORD = hashPassword("alqemia123")
+// Contraseña del titular del Hub (cuenta ADMIN). Cámbiala desde el panel
+// si compartes este repositorio.
+const ADMIN_EMAIL = "admin@alqemia.com"
+const ADMIN_PASSWORD = "AlqemiaAdmin2025!"
+
+// Los perfiles de contenido inicial usan contraseñas aleatorias: son perfiles
+// de arranque de la comunidad, no cuentas de acceso.
+function randomPasswordHash(): string {
+  return hashPassword(crypto.randomBytes(24).toString("hex"))
+}
 
 // Emails que pertenecen al seed: solo estos se borran y recrean.
 // Las cuentas reales creadas por usuarios (registro/Google) se preservan.
@@ -120,7 +129,7 @@ async function main() {
         ["Frameworks de copy ganadores", "AIDA, PAS y FAB aplicados a productos reales.", 14],
         ["Copy para fichas de producto", "Beneficios antes que características: la fórmula de fichas que convierten.", 12],
         ["Emails que abren y compran", "Asuntos, cuerpo y llamadas a la acción que no dan vergüenza.", 13],
-        ["Copy para ads de alto CTR", "Ganchos y ángulos para tus anuncios, listos para testear.", 15],
+        ["Copy para ads de alto CTR", "Ganchos y ángulos para tus anuncios, listos para publicar.", 15],
       ],
     },
     {
@@ -227,7 +236,7 @@ async function main() {
       data: {
         name: u.name,
         email: u.email,
-        passwordHash: DEMO_PASSWORD,
+        passwordHash: u.email === ADMIN_EMAIL ? hashPassword(ADMIN_PASSWORD) : randomPasswordHash(),
         avatarColor: u.avatarColor,
         headline: u.headline,
         bio: u.bio || null,
@@ -256,7 +265,7 @@ async function main() {
     {
       author: "diego@alqemia.com",
       content:
-        "Pregunta para los que ya escalan: en qué momento decidieron duplicar presupuesto? Llevo 3 días con un CPA estable de $4.20 y tengo miedo de romper la magia. Aportes bienvenidos, prometo devolver el favor con lo que aprenda del test.",
+        "Pregunta para los que ya escalan: en qué momento decidieron duplicar presupuesto? Llevo 3 días con un CPA estable de $4.20 y tengo miedo de romper la magia. Aportes bienvenidos, prometo devolver el favor con lo que aprenda del experimento.",
       hours: 7,
     },
     {

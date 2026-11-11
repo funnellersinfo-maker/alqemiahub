@@ -37,7 +37,7 @@ async function main() {
 
   const out = [
     "-- ==========================================================",
-    "-- ALQEMIA HUB — Datos demo (seed) para el Durable Object",
+    "-- ALQEMIA HUB — Datos iniciales (seed) para el Durable Object",
     "-- Generado automáticamente desde la BD local del sandbox",
     "-- ==========================================================",
     "PRAGMA defer_foreign_keys = TRUE;",

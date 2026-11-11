@@ -14,8 +14,8 @@ export function verifyPassword(password: string, stored: string): boolean {
   try {
     const [scheme, salt, hash] = stored.split(":")
     if (scheme !== "scrypt" || !salt || !hash) return false
-    const test = crypto.scryptSync(password, salt, KEY_LEN)
-    return crypto.timingSafeEqual(Buffer.from(test.toString("hex"), "hex"), Buffer.from(hash, "hex"))
+    const computed = crypto.scryptSync(password, salt, KEY_LEN)
+    return crypto.timingSafeEqual(Buffer.from(computed.toString("hex"), "hex"), Buffer.from(hash, "hex"))
   } catch {
     return false
   }

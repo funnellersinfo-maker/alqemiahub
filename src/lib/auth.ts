@@ -52,13 +52,6 @@ const providers: NextAuthOptions["providers"] = [
       const user = await db.user.findUnique({ where: { email } })
       if (!user || user.status === "BLOCKED") return null
 
-      // Modo "google-demo": login instantáneo para cuentas creadas con el
-      // simulador de Google (solo si el usuario no tiene contraseña)
-      if (credentials?.mode === "google-demo") {
-        if (user.googleId) return toSessionUser(user)
-        return null
-      }
-
       if (!user.passwordHash || !credentials?.password) return null
       if (!verifyPassword(credentials.password, user.passwordHash)) return null
       return toSessionUser(user)

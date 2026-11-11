@@ -17,7 +17,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 export async function GET(req: NextRequest) {
   try {
-    if (!isAdminRequest(req)) return errorResponse(401, "No autorizado")
+    if (!(await isAdminRequest(req))) return errorResponse(401, "No autorizado")
 
     const now = new Date()
     const sevenDaysAgo = new Date(now.getTime() - 7 * DAY_MS)

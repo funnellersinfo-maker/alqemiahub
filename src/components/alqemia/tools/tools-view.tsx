@@ -17,7 +17,7 @@ const LOCKED_TOOLS: LockedTool[] = [
   {
     icon: ImageIcon,
     title: "Generador de Creativos",
-    desc: "Anuncios visuales listos para testear",
+    desc: "Anuncios visuales listos para publicar",
   },
   {
     icon: ScanSearch,

@@ -7,7 +7,7 @@ import { feedInclude, toFeedPost } from "@/lib/feed"
 
 export async function GET(req: NextRequest) {
   try {
-    if (!isAdminRequest(req)) return errorResponse(401, "No autorizado")
+    if (!(await isAdminRequest(req))) return errorResponse(401, "No autorizado")
 
     const posts = await db.post.findMany({
       orderBy: { createdAt: "desc" },

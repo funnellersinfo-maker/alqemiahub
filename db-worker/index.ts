@@ -5,7 +5,7 @@
 //   POST /sql   { sql, params, mode: raw|run|exec }
 //   GET  /health
 //   POST /admin/reseed  { key }
-// Se auto-inicializa (esquema + datos demo) en la primera petición.
+// Se auto-inicializa (esquema + datos iniciales) en la primera petición.
 // ============================================================
 
 import { DurableObject } from "cloudflare:workers"
@@ -69,7 +69,7 @@ export class HubDB extends DurableObject {
     return this.ctx.storage.sql as unknown as SqlLike
   }
 
-  /** Crea el esquema y los datos demo si la base está vacía. */
+  /** Crea el esquema y los datos iniciales si la base está vacía. */
   private ensureInit(): void {
     if (this.initialized) return
     const cursor = this.sql.exec(

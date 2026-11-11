@@ -68,3 +68,4 @@ server.log
 .wrangler/
 .env
 *.secret*
+tool-results/

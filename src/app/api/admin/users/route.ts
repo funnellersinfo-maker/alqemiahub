@@ -8,7 +8,7 @@ import type { AdminUserRow } from "@/lib/types"
 
 export async function GET(req: NextRequest) {
   try {
-    if (!isAdminRequest(req)) return errorResponse(401, "No autorizado")
+    if (!(await isAdminRequest(req))) return errorResponse(401, "No autorizado")
 
     const q = (new URL(req.url).searchParams.get("q") ?? "").trim().toLowerCase()
 
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    if (!isAdminRequest(req)) return errorResponse(401, "No autorizado")
+    if (!(await isAdminRequest(req))) return errorResponse(401, "No autorizado")
 
     const body = ((await req.json().catch(() => null)) ?? {}) as Record<string, unknown>
     const userId = typeof body.userId === "string" ? body.userId : ""

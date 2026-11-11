@@ -15,7 +15,7 @@ export async function DELETE(
     const post = await db.post.findUnique({ where: { id } })
     if (!post) return errorResponse(404, "Publicación no encontrada")
 
-    if (post.userId !== user.id && !isAdminRequest(req)) {
+    if (post.userId !== user.id && !(await isAdminRequest(req))) {
       return errorResponse(403, "No tienes permiso para eliminar esta publicación")
     }
 
