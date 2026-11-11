@@ -1,7 +1,10 @@
-// GET / PATCH /api/admin/users — Listar y bloquear/activar miembros (header x-admin-key)
+// GET / PATCH / DELETE /api/admin/users — Listar, bloquear/activar y eliminar
+// miembros (header x-admin-key o sesión con rol ADMIN)
 import { NextRequest } from "next/server"
+import { getServerSession } from "next-auth"
 import { db } from "@/lib/db"
 import { isAdminRequest } from "@/lib/admin"
+import { authOptions } from "@/lib/auth"
 import { errorResponse, handleApiError } from "@/lib/api-helpers"
 import { getLevelInfo } from "@/lib/gamification"
 import type { AdminUserRow } from "@/lib/types"
@@ -32,6 +35,7 @@ export async function GET(req: NextRequest) {
       email: u.email,
       image: u.image,
       avatarColor: u.avatarColor,
+      role: u.role === "ADMIN" ? "ADMIN" : "USER",
       status: u.status === "BLOCKED" ? "BLOCKED" : "ACTIVE",
       xp: u.xp,
       level: getLevelInfo(u.xp),
@@ -43,6 +47,38 @@ export async function GET(req: NextRequest) {
     }))
 
     return Response.json({ users: rows })
+  } catch (e) {
+    return handleApiError(e)
+  }
+}
+
+/** DELETE — Elimina un miembro y todo su contenido (cascada).
+ * Protegido: no se puede eliminar la propia cuenta ni cuentas ADMIN. */
+export async function DELETE(req: NextRequest) {
+  try {
+    if (!(await isAdminRequest(req))) return errorResponse(401, "No autorizado")
+
+    const body = ((await req.json().catch(() => null)) ?? {}) as Record<string, unknown>
+    const userId = typeof body.userId === "string" ? body.userId : ""
+    if (!userId) return errorResponse(400, "Miembro inválido")
+
+    const target = await db.user.findUnique({ where: { id: userId } })
+    if (!target) return errorResponse(404, "Miembro no encontrado")
+
+    // Blindaje: las cuentas ADMIN (la del titular) no se pueden borrar desde aquí
+    if (target.role === "ADMIN") {
+      return errorResponse(403, "No se puede eliminar una cuenta de administrador")
+    }
+
+    // Si la petición viene de una sesión, impedir el auto-borrado
+    const session = await getServerSession(authOptions)
+    if (session?.user?.id && session.user.id === userId) {
+      return errorResponse(403, "No puedes eliminar tu propia cuenta")
+    }
+
+    await db.user.delete({ where: { id: userId } })
+
+    return Response.json({ ok: true })
   } catch (e) {
     return handleApiError(e)
   }

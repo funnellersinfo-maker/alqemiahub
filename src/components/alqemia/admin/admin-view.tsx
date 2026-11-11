@@ -363,6 +363,50 @@ function StatusAction({
   )
 }
 
+/** Eliminar miembro (con confirmación). Oculto para cuentas ADMIN. */
+function DeleteAction({
+  user,
+  onConfirm,
+}: {
+  user: AdminUserRow
+  onConfirm: (user: AdminUserRow) => void
+}) {
+  if (user.role === "ADMIN") return null
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label={`Eliminar a ${user.name}`}
+          title="Eliminar miembro"
+          className="h-8 w-8 border-zinc-700 text-zinc-400 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400"
+        >
+          <Trash2 aria-hidden />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>¿Eliminar a {user.name}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Se eliminará su cuenta y todo su contenido: publicaciones, comentarios,
+            me gusta y progreso. Esta acción no se puede deshacer.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-red-600 text-white hover:bg-red-700"
+            onClick={() => onConfirm(user)}
+          >
+            Eliminar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 px-2.5 py-1.5">
@@ -401,6 +445,20 @@ function UsersTab() {
       toast.success(
         vars.status === "BLOCKED" ? `${vars.name} suspendido` : `${vars.name} reactivado`
       )
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (vars: { userId: string; name: string }) =>
+      adminFetch<{ ok: boolean }>("/api/admin/users", {
+        method: "DELETE",
+        body: JSON.stringify({ userId: vars.userId }),
+      }),
+    onSuccess: (_data, vars) => {
+      void queryClient.invalidateQueries({ queryKey: ["admin-users"] })
+      void queryClient.invalidateQueries({ queryKey: ["admin-stats"] })
+      toast.success(`${vars.name} eliminado del hub`)
     },
     onError: (err: Error) => toast.error(err.message),
   })
@@ -495,7 +553,13 @@ function UsersTab() {
                       {timeAgo(u.lastActiveAt)}
                     </TableCell>
                     <TableCell className="pr-6 text-right">
-                      <StatusAction user={u} onConfirm={changeStatus} />
+                      <div className="flex items-center justify-end gap-1.5">
+                        <StatusAction user={u} onConfirm={changeStatus} />
+                        <DeleteAction
+                          user={u}
+                          onConfirm={(usr) => deleteMutation.mutate({ userId: usr.id, name: usr.name })}
+                        />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -523,8 +587,12 @@ function UsersTab() {
                   <MiniStat label="Lecciones" value={String(u.lessonsCompleted)} />
                   <MiniStat label="Últ. actividad" value={timeAgo(u.lastActiveAt)} />
                 </div>
-                <div className="mt-3">
+                <div className="mt-3 flex items-center gap-2">
                   <StatusAction user={u} onConfirm={changeStatus} fullWidth />
+                  <DeleteAction
+                    user={u}
+                    onConfirm={(usr) => deleteMutation.mutate({ userId: usr.id, name: usr.name })}
+                  />
                 </div>
               </Card>
             ))}

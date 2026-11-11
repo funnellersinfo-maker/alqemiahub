@@ -134,6 +134,7 @@ export type AdminUserRow = {
   email: string
   image: string | null
   avatarColor: string | null
+  role: "USER" | "ADMIN"
   status: UserStatus
   xp: number
   level: LevelInfo

@@ -34,10 +34,26 @@ bun run dev                 # http://localhost:3000
 
 La plataforma vive en dos Workers del mismo account:
 
-| Worker | URL | Rol |
+| Recurso | URL | Rol |
 | --- | --- | --- |
+| **Enlace corto para compartir** | **https://alqemiahub.pages.dev** | Redirige (302) al hub — es el link oficial para comunidades |
 | `alqemiahub` | https://alqemiahub.mastershop-funnellers.workers.dev | La app completa (Next.js 16 vía OpenNext) |
 | `alqemia-db` | https://alqemia-db.mastershop-funnellers.workers.dev | Base de datos (Durable Object SQLite) — solo `/health` público |
+
+El enlace corto vive en un proyecto de Cloudflare Pages (`alqemiahub`) cuyo único contenido es un redirect (`pages-redirect/_redirects`). Para cambiar su destino, edita ese archivo y vuelve a desplegar: `bunx wrangler pages deploy pages-redirect --project-name alqemiahub --branch main`.
+
+### Dominio propio `alqemiahub.dev`
+
+El dominio está **disponible** (verificado en el registro de Google). Para usar exactamente `https://alqemiahub.dev`:
+
+1. Regístralo (~US$12/año) en Cloudflare (Dashboard → Domain Registration) o tu registrador preferido y añádelo a la cuenta de Cloudflare como zona.
+2. Conéctalo al worker añadiendo a `wrangler.jsonc`:
+
+```jsonc
+"routes": [{ "pattern": "alqemiahub.dev", "custom_domain": true }]
+```
+
+3. Actualiza la variable `NEXTAUTH_URL` en `wrangler.jsonc` a `https://alqemiahub.dev`, el destino en `pages-redirect/_redirects` y redespliega (`bunx opennextjs-cloudflare build && bunx wrangler deploy`).
 
 Arquitectura de datos: `Prisma 6 (driverAdapters)` → `@prisma/adapter-d1` → shim `RemoteSqlDatabase` (`src/lib/cf-sql.ts`) → Durable Object `HubDB` (`db-worker/index.ts`) con SQLite real y auto-inicialización (esquema + datos iniciales incluidos en `db-worker/schema.sql` y `db-worker/seed.sql`).
 

@@ -10,7 +10,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { db } from "@/lib/db"
 
-export const ADMIN_KEY = process.env.ADMIN_ACCESS_KEY ?? "ALQEMIA-2025"
+export const ADMIN_KEY = process.env.ADMIN_ACCESS_KEY ?? "ALQEMIA-ADMIN-2025"
 
 function isKeyValid(key: string | null): boolean {
   if (!key) return false

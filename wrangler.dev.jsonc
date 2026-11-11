@@ -10,7 +10,7 @@
   },
   "vars": {
     "NEXTAUTH_URL": "http://localhost:8788",
-    "ADMIN_ACCESS_KEY": "ALQEMIA-2025",
+    "ADMIN_ACCESS_KEY": "ALQEMIA-ADMIN-2025",
     "DB_API_URL": "http://localhost:8787"
   },
   "observability": {
