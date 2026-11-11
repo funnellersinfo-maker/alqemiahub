@@ -78,16 +78,15 @@ El worker `alqemia-db` expone `POST /admin/reseed` (interno) para restaurar el c
 
 > Nota: la herramienta CopyLab IA depende del SDK del entorno de desarrollo; en Cloudflare responde con un mensaje de no disponible. Todo lo demás (registro, login, muro, classroom, gamificación, admin, métricas) funciona 100% en producción.
 
-### Acceso social: Google, Microsoft y Apple
+### Acceso social: Google y Microsoft (gratuitos)
 
-Los tres botones están siempre visibles en la puerta de entrada. Cada proveedor se **activa automáticamente** al definir sus variables en el worker (`bunx wrangler secret put ... --name alqemiahub`): el botón pasa de "Pronto" a totalmente funcional y el primer login social crea la cuenta del miembro (sin contraseña), que luego completa el Ritual de Iniciación.
+Los dos botones están siempre visibles en la puerta de entrada. Cada proveedor se **activa automáticamente** al definir sus variables en el worker (`bunx wrangler secret put ... --name alqemiahub`): el botón pasa de "Pronto" a totalmente funcional y el primer login social crea la cuenta del miembro (sin contraseña), que luego completa el Ritual de Iniciación. *(Apple fue eliminado: requiere Apple Developer Program a US$99/año.)*
 
 URL de redirección a registrar en cada proveedor (la del worker, no la corta):
 
 ```
 https://alqemiahub.mastershop-funnellers.workers.dev/api/auth/callback/google
 https://alqemiahub.mastershop-funnellers.workers.dev/api/auth/callback/azure-ad
-https://alqemiahub.mastershop-funnellers.workers.dev/api/auth/callback/apple
 ```
 
 **Google (gratis, ~10 min)** — [console.cloud.google.com](https://console.cloud.google.com):
@@ -99,12 +98,6 @@ https://alqemiahub.mastershop-funnellers.workers.dev/api/auth/callback/apple
 1. "Autenticación" → "Agregar plataforma" → Web → la URL de redirección de arriba.
 2. "Certificados y secretos" → "Nuevo secreto de cliente".
 3. `bunx wrangler secret put AZURE_CLIENT_ID --name alqemiahub` y `bunx wrangler secret put AZURE_CLIENT_SECRET --name alqemiahub` (opcional `AZURE_TENANT_ID` para restringir a una organización).
-
-**Apple (requiere Apple Developer Program, US$99/año)** — [developer.apple.com](https://developer.apple.com):
-1. Certificates, IDs & Profiles → "Identifiers" → registra un **Services ID** (ese es el `APPLE_CLIENT_ID`) con la URL de retorno de arriba.
-2. Crea una clave privada (.p8) con la capacidad "Sign In with Apple".
-3. Genera el **client secret JWT** a partir de la .p8 (script: `bal.so/apple-gen-secret`); vence a los ~6 meses.
-4. `bunx wrangler secret put APPLE_CLIENT_ID --name alqemiahub` y `bunx wrangler secret put APPLE_CLIENT_SECRET --name alqemiahub`.
 
 Después de añadir secretos no hace falta redesplegar: el estado se consulta en vivo en `/api/auth/status`.
 
