@@ -55,11 +55,6 @@ export type MeUser = {
   achievements: MeAchievement[]
 }
 
-export type AuthProvidersStatus = {
-  google: boolean
-  microsoft: boolean
-}
-
 export type MeResponse = {
   user: MeUser
   xp?: XpEvent | null

@@ -78,28 +78,9 @@ El worker `alqemia-db` expone `POST /admin/reseed` (interno) para restaurar el c
 
 > Nota: la herramienta CopyLab IA depende del SDK del entorno de desarrollo; en Cloudflare responde con un mensaje de no disponible. Todo lo demás (registro, login, muro, classroom, gamificación, admin, métricas) funciona 100% en producción.
 
-### Acceso social: Google y Microsoft (gratuitos)
+### Acceso de miembros
 
-Los dos botones están siempre visibles en la puerta de entrada. Cada proveedor se **activa automáticamente** al definir sus variables en el worker (`bunx wrangler secret put ... --name alqemiahub`): el botón pasa de "Pronto" a totalmente funcional y el primer login social crea la cuenta del miembro (sin contraseña), que luego completa el Ritual de Iniciación. *(Apple fue eliminado: requiere Apple Developer Program a US$99/año.)*
-
-URL de redirección a registrar en cada proveedor (la del worker, no la corta):
-
-```
-https://alqemiahub.mastershop-funnellers.workers.dev/api/auth/callback/google
-https://alqemiahub.mastershop-funnellers.workers.dev/api/auth/callback/azure-ad
-```
-
-**Google (gratis, ~10 min)** — [console.cloud.google.com](https://console.cloud.google.com):
-1. Crea un proyecto → "APIs y servicios" → "Pantalla de consentimiento OAuth" (tipo External, agrega tu email como usuario de prueba).
-2. "Credenciales" → "Crear credenciales" → "ID de cliente de OAuth" → Aplicación web → agrega la URL de redirección de arriba.
-3. `bunx wrangler secret put GOOGLE_CLIENT_ID --name alqemiahub` y `bunx wrangler secret put GOOGLE_CLIENT_SECRET --name alqemiahub`.
-
-**Microsoft (gratis, ~10 min)** — [portal.azure.com](https://portal.azure.com) → "Microsoft Entra ID" → "Registros de aplicaciones" → "Nuevo registro" (tipo: cuentas en cualquier directorio organizativo y cuentas personales de Microsoft):
-1. "Autenticación" → "Agregar plataforma" → Web → la URL de redirección de arriba.
-2. "Certificados y secretos" → "Nuevo secreto de cliente".
-3. `bunx wrangler secret put AZURE_CLIENT_ID --name alqemiahub` y `bunx wrangler secret put AZURE_CLIENT_SECRET --name alqemiahub` (opcional `AZURE_TENANT_ID` para restringir a una organización).
-
-Después de añadir secretos no hace falta redesplegar: el estado se consulta en vivo en `/api/auth/status`.
+Registro e ingreso únicamente con **email y contraseña** (abierto a cualquier visitante). Al crear la cuenta, el miembro entra directo al Ritual de Iniciación (quiz de perfil). El acceso social con Google/Microsoft se retiró deliberadamente; su implementación queda en el historial de git (commit `fda7849`) por si algún día se desea reactivar.
 
 ### Ritual de Iniciación (onboarding gamificado)
 
