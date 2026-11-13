@@ -38,8 +38,109 @@ model User {
   likes        Like[]
   progress     LessonProgress[]
   achievements Achievement[]
+  products     Product[]
+  favorites    ProductFavorite[]
+  sales        Sale[]
+  chatMessages ChatMessage[]
 
   @@index([xp])
+}
+
+// ============================================================
+// EN VIVO — transmisiones y grabaciones del gremio
+// ============================================================
+model LiveSession {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @default("")
+  status      String   @default("SCHEDULED") // SCHEDULED | LIVE | ENDED
+  scheduledAt DateTime @default(now())
+  coverImage  String? // dataURL 16:9 (imagen de anuncio)
+  streamUrl   String? // YouTube Live / Meet / Zoom
+  replayUrl   String? // grabación (YouTube o mp4)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+// ============================================================
+// MARKETPLACE — productos de los miembros
+// ============================================================
+model Product {
+  id            String   @id @default(cuid())
+  sellerId      String
+  seller        User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  title         String
+  description   String   @default("")
+  category      String // MICRO_APP | DIGITAL | PHYSICAL | SERVICE
+  price         Float    @default(0)
+  currency      String   @default("USD")
+  commissionPct Int      @default(50) // % que gana el aliado revendedor
+  recurring     Boolean  @default(false) // pago recurrente (mensual)
+  coverImage    String? // dataURL 16:9
+  contentUrl    String? // link al material (Drive, Notion, etc.)
+  status        String   @default("ACTIVE") // ACTIVE | PAUSED
+  views         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  favorites ProductFavorite[]
+  sales     Sale[]
+
+  @@index([category])
+  @@index([createdAt])
+  @@index([sellerId])
+}
+
+// Aliados: productos que un miembro revende (sus "favoritos" del mercado)
+model ProductFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([productId])
+}
+
+// Ventas registradas por los aliados (con comprobante de pago)
+model Sale {
+  id           String   @id @default(cuid())
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  resellerId   String
+  reseller     User     @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  buyerName    String
+  buyerContact String? // WhatsApp / email del comprador
+  amount       Float    @default(0)
+  currency     String   @default("USD")
+  commission   Float    @default(0) // monto que gana el aliado
+  proofImage   String? // dataURL del comprobante de pago
+  note         String?
+  status       String   @default("PENDING") // PENDING | CONFIRMED
+  createdAt    DateTime @default(now())
+
+  @@index([resellerId])
+  @@index([productId])
+  @@index([status])
+}
+
+// ============================================================
+// ASISTENTE IA — historial de conversación por miembro
+// ============================================================
+model ChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String // "user" | "assistant"
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model Post {

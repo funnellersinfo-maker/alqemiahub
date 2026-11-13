@@ -581,6 +581,101 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* ============================================================
+   EN VIVO — punto rojo mágico titilante
+   ============================================================ */
+@keyframes live-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  70% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+.animate-live-ping {
+  animation: live-ping 1.15s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* ============================================================
+   EL ORÁCULO — markdown ligero dentro de las respuestas IA
+   ============================================================ */
+.oracle-md p {
+  margin-bottom: 0.5rem;
+}
+.oracle-md p:last-child {
+  margin-bottom: 0;
+}
+.oracle-md strong {
+  color: #f5d77a;
+  font-weight: 600;
+}
+.oracle-md ul,
+.oracle-md ol {
+  margin: 0.4rem 0 0.6rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.oracle-md ul {
+  list-style: disc;
+}
+.oracle-md ol {
+  list-style: decimal;
+}
+.oracle-md li::marker {
+  color: #d4af37;
+}
+.oracle-md h1,
+.oracle-md h2,
+.oracle-md h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f5d77a;
+  margin: 0.6rem 0 0.35rem;
+}
+.oracle-md code {
+  background: rgba(212, 175, 55, 0.12);
+  border-radius: 0.35rem;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.8em;
+}
+.oracle-md a {
+  color: #f5d77a;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.oracle-md blockquote {
+  border-left: 3px solid rgba(212, 175, 55, 0.5);
+  padding-left: 0.75rem;
+  color: #a1a1aa;
+  margin: 0.4rem 0;
+}
+.oracle-md hr {
+  border-color: rgba(212, 175, 55, 0.25);
+  margin: 0.6rem 0;
+}
+.oracle-md table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85em;
+  margin: 0.4rem 0;
+}
+.oracle-md th,
+.oracle-md td {
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+}
+.oracle-md th {
+  color: #f5d77a;
+}
+
 /* Accesibilidad: menos movimiento cuando el usuario lo pide */
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee,

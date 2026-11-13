@@ -5,6 +5,7 @@ import { FolderOpen, Image as ImageIcon, LineChart, Lock, ScanSearch } from "luc
 
 import { CopyLabTool } from "@/components/alqemia/tools/copylab-tool"
 import { PricingCalculator } from "@/components/alqemia/tools/pricing-calculator"
+import { WhalinkTool } from "@/components/alqemia/tools/whalink-tool"
 import { Card } from "@/components/ui/card"
 
 type LockedTool = {
@@ -49,6 +50,7 @@ export function ToolsView() {
       <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-6 sm:grid-cols-2">
         <PricingCalculator />
         <CopyLabTool />
+        <WhalinkTool />
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

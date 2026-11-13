@@ -6,7 +6,15 @@
 import { create } from "zustand"
 import type { XpEvent } from "@/lib/types"
 
-export type AppView = "feed" | "classroom" | "tools" | "profile" | "admin"
+export type AppView =
+  | "feed"
+  | "live"
+  | "classroom"
+  | "market"
+  | "tools"
+  | "ai"
+  | "profile"
+  | "admin"
 
 export type XpToastItem = {
   id: number

@@ -1,17 +1,23 @@
 "use client"
 
 // ============================================================
-// ALQEMIA HUB — AppShell: navega entre Muro, Classroom,
-// Herramientas, Perfil y Panel Admin (la tuerca).
+// ALQEMIA HUB — AppShell: navega entre Muro, En Vivo, Classroom,
+// Marketplace, Herramientas, El Oráculo (IA), Perfil y Panel Admin.
 // Sidebar en desktop · header + tab bar en móvil · menú sandwich.
+// El ítem En Vivo enciende su punto rojo titilante cuando
+// hay una transmisión activa.
 // ============================================================
 
 import { useState } from "react"
 import { signOut } from "next-auth/react"
+import { useQuery } from "@tanstack/react-query"
 import {
   Home,
+  Radio,
   GraduationCap,
+  Store,
   Wrench,
+  Sparkles,
   User,
   Menu,
   LogOut,
@@ -26,7 +32,10 @@ import { useMe } from "@/hooks/use-me"
 import { UserAvatar } from "@/components/alqemia/avatar"
 import { AlchemyBackground } from "@/components/alqemia/fx/alchemy-background"
 import { FeedView } from "@/components/alqemia/feed/feed-view"
+import { LiveView } from "@/components/alqemia/live/live-view"
 import { ClassroomView } from "@/components/alqemia/classroom/classroom-view"
+import { MarketplaceView } from "@/components/alqemia/marketplace/marketplace-view"
+import { AiChatView } from "@/components/alqemia/ai/ai-chat-view"
 import { ToolsView } from "@/components/alqemia/tools/tools-view"
 import { ProfileView } from "@/components/alqemia/profile/profile-view"
 import { AdminView } from "@/components/alqemia/admin/admin-view"
@@ -34,13 +43,16 @@ import { AdminGate } from "@/components/alqemia/admin/admin-gate"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 
-type NavKey = "feed" | "classroom" | "tools" | "profile"
+type NavKey = "feed" | "live" | "classroom" | "market" | "tools" | "ai" | "profile"
 
-const NAV: { key: NavKey; label: string; icon: typeof Home }[] = [
-  { key: "feed", label: "Muro", icon: Home },
-  { key: "classroom", label: "Classroom", icon: GraduationCap },
-  { key: "tools", label: "Herramientas", icon: Wrench },
-  { key: "profile", label: "Perfil", icon: User },
+const NAV: { key: NavKey; label: string; shortLabel: string; icon: typeof Home }[] = [
+  { key: "feed", label: "Muro", shortLabel: "Muro", icon: Home },
+  { key: "live", label: "En Vivo", shortLabel: "En Vivo", icon: Radio },
+  { key: "classroom", label: "Classroom", shortLabel: "Clases", icon: GraduationCap },
+  { key: "market", label: "Marketplace", shortLabel: "Mercado", icon: Store },
+  { key: "tools", label: "Herramientas", shortLabel: "Tools", icon: Wrench },
+  { key: "ai", label: "El Oráculo (IA)", shortLabel: "IA", icon: Sparkles },
+  { key: "profile", label: "Perfil", shortLabel: "Perfil", icon: User },
 ]
 
 function Logo({ className }: { className?: string }) {
@@ -91,6 +103,20 @@ function TuercaButton({
   )
 }
 
+/** Punto rojo titilante para el ítem En Vivo del menú (solo con live activo) */
+function LiveNavDot() {
+  return (
+    <span
+      className="absolute right-2.5 top-2 flex h-2.5 w-2.5"
+      aria-label="Transmisión en vivo ahora"
+      title="¡EN VIVO ahora!"
+    >
+      <span className="animate-live-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-600 shadow-[0_0_10px_2px_rgba(239,68,68,0.9)]" />
+    </span>
+  )
+}
+
 export function AppShell() {
   const view = useAppStore((s) => s.view)
   const setView = useAppStore((s) => s.setView)
@@ -100,6 +126,19 @@ export function AppShell() {
   const { data } = useMe()
   const user = data?.user
   const level = user?.level
+
+  // ¿Hay transmisión EN VIVO? (polling ligero: 25s)
+  const { data: liveStatus } = useQuery<{ isLive: boolean }>({
+    queryKey: ["live-status"],
+    queryFn: async () => {
+      const res = await fetch("/api/live/status")
+      if (!res.ok) return { isLive: false }
+      return res.json()
+    },
+    refetchInterval: 25_000,
+    staleTime: 20_000,
+  })
+  const isLive = liveStatus?.isLive === true
 
   const openTuerca = () => {
     // El titular (rol ADMIN) entra directo; el resto necesita la clave
@@ -147,6 +186,7 @@ export function AppShell() {
                 )}
                 <Icon className="h-5 w-5 shrink-0" aria-hidden />
                 {label}
+                {key === "live" && isLive && <LiveNavDot />}
               </button>
             )
           })}
@@ -256,20 +296,23 @@ export function AppShell() {
         <main className="px-4 pb-24 pt-4 sm:px-6 sm:pt-6 lg:px-8 lg:pb-10">
           <div key={view} className="animate-view">
             {view === "feed" && <FeedView />}
+            {view === "live" && <LiveView />}
             {view === "classroom" && <ClassroomView />}
+            {view === "market" && <MarketplaceView />}
             {view === "tools" && <ToolsView />}
+            {view === "ai" && <AiChatView />}
             {view === "profile" && <ProfileView />}
             {view === "admin" && <AdminView />}
           </div>
         </main>
       </div>
 
-      {/* ============ TAB BAR MÓVIL ============ */}
+      {/* ============ TAB BAR MÓVIL (scrollable con 7 secciones) ============ */}
       <nav
-        className="pb-safe fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-zinc-800 bg-zinc-950/95 backdrop-blur-md lg:hidden"
+        className="pb-safe fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-zinc-800 bg-zinc-950/95 backdrop-blur-md [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden"
         aria-label="Navegación"
       >
-        {NAV.map(({ key, label, icon: Icon }) => {
+        {NAV.map(({ key, shortLabel, icon: Icon }) => {
           const active = view === key
           return (
             <button
@@ -277,7 +320,7 @@ export function AppShell() {
               onClick={() => setView(key)}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium transition-colors",
+                "relative flex min-w-[14.28%] shrink-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-[9px] font-medium transition-colors",
                 active ? "text-gold" : "text-zinc-400 hover:text-zinc-200"
               )}
             >
@@ -288,6 +331,12 @@ export function AppShell() {
                 >
                   <Icon className="h-5 w-5" aria-hidden />
                 </span>
+                {key === "live" && isLive && (
+                  <span className="absolute -right-1.5 -top-1 flex h-2 w-2">
+                    <span className="animate-live-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-red-600" />
+                  </span>
+                )}
                 {active && (
                   <span
                     className="animate-chip-pop absolute -bottom-[7px] left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-gold-deep"
@@ -295,7 +344,7 @@ export function AppShell() {
                   />
                 )}
               </span>
-              {label}
+              {shortLabel}
             </button>
           )
         })}
@@ -329,12 +378,13 @@ export function AppShell() {
                   onClick={() => go(key)}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                    "relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                     active ? "bg-zinc-800/80 text-white" : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
                   )}
                 >
                   <Icon className="h-5 w-5 shrink-0" aria-hidden />
                   {label}
+                  {key === "live" && isLive && <LiveNavDot />}
                 </button>
               )
             })}

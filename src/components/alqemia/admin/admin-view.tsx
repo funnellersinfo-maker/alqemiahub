@@ -62,6 +62,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EmptyState } from "@/components/alqemia/empty-state"
 import { UserAvatar } from "@/components/alqemia/avatar"
+import { LiveManager } from "@/components/alqemia/admin/live-manager"
 
 // ============================================================
 // Fetch autenticado con clave de admin (localStorage)
@@ -747,10 +748,11 @@ export function AdminView() {
       </div>
 
       <Tabs defaultValue="resumen" className="mt-4">
-        <TabsList>
+        <TabsList className="max-w-full overflow-x-auto">
           <TabsTrigger value="resumen">Resumen</TabsTrigger>
           <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
           <TabsTrigger value="contenido">Contenido</TabsTrigger>
+          <TabsTrigger value="envivo">En Vivo</TabsTrigger>
         </TabsList>
         <TabsContent value="resumen" className="mt-4">
           <ResumenTab />
@@ -760,6 +762,9 @@ export function AdminView() {
         </TabsContent>
         <TabsContent value="contenido" className="mt-4">
           <ContentTab />
+        </TabsContent>
+        <TabsContent value="envivo" className="mt-4">
+          <LiveManager />
         </TabsContent>
       </Tabs>
     </div>

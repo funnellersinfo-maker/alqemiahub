@@ -58,6 +58,88 @@ function execScript(sql: SqlLike, script: string): void {
   }
 }
 
+// v2 — EN VIVO + MARKETPLACE + ASISTENTE IA. Idempotente: CREATE TABLE
+// IF NOT EXISTS / CREATE INDEX IF NOT EXISTS. Seguro sobre bases con datos.
+const MIGRATION_V2_SQL = `
+CREATE TABLE IF NOT EXISTS "LiveSession" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL DEFAULT '',
+    "status" TEXT NOT NULL DEFAULT 'SCHEDULED',
+    "scheduledAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "coverImage" TEXT,
+    "streamUrl" TEXT,
+    "replayUrl" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "LiveSession_status_idx" ON "LiveSession"("status");
+CREATE INDEX IF NOT EXISTS "LiveSession_scheduledAt_idx" ON "LiveSession"("scheduledAt");
+
+CREATE TABLE IF NOT EXISTS "Product" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "sellerId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL DEFAULT '',
+    "category" TEXT NOT NULL,
+    "price" REAL NOT NULL DEFAULT 0,
+    "currency" TEXT NOT NULL DEFAULT 'USD',
+    "commissionPct" INTEGER NOT NULL DEFAULT 50,
+    "recurring" BOOLEAN NOT NULL DEFAULT false,
+    "coverImage" TEXT,
+    "contentUrl" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'ACTIVE',
+    "views" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "Product_sellerId_fkey" FOREIGN KEY ("sellerId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+CREATE INDEX IF NOT EXISTS "Product_category_idx" ON "Product"("category");
+CREATE INDEX IF NOT EXISTS "Product_createdAt_idx" ON "Product"("createdAt");
+CREATE INDEX IF NOT EXISTS "Product_sellerId_idx" ON "Product"("sellerId");
+
+CREATE TABLE IF NOT EXISTS "ProductFavorite" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "ProductFavorite_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "ProductFavorite_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "ProductFavorite_userId_productId_key" ON "ProductFavorite"("userId", "productId");
+CREATE INDEX IF NOT EXISTS "ProductFavorite_productId_idx" ON "ProductFavorite"("productId");
+
+CREATE TABLE IF NOT EXISTS "Sale" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "productId" TEXT NOT NULL,
+    "resellerId" TEXT NOT NULL,
+    "buyerName" TEXT NOT NULL,
+    "buyerContact" TEXT,
+    "amount" REAL NOT NULL DEFAULT 0,
+    "currency" TEXT NOT NULL DEFAULT 'USD',
+    "commission" REAL NOT NULL DEFAULT 0,
+    "proofImage" TEXT,
+    "note" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Sale_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "Sale_resellerId_fkey" FOREIGN KEY ("resellerId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+CREATE INDEX IF NOT EXISTS "Sale_resellerId_idx" ON "Sale"("resellerId");
+CREATE INDEX IF NOT EXISTS "Sale_productId_idx" ON "Sale"("productId");
+CREATE INDEX IF NOT EXISTS "Sale_status_idx" ON "Sale"("status");
+
+CREATE TABLE IF NOT EXISTS "ChatMessage" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "role" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "ChatMessage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+CREATE INDEX IF NOT EXISTS "ChatMessage_userId_createdAt_idx" ON "ChatMessage"("userId", "createdAt");
+`
+
 export class HubDB extends DurableObject {
   private initialized = false
 
@@ -92,6 +174,9 @@ export class HubDB extends DurableObject {
     } catch {
       // La columna ya existe: nada que hacer
     }
+    // v2: EN VIVO + MARKETPLACE + ASISTENTE IA (CREATE TABLE IF NOT EXISTS:
+    // crea lo que falte sin tocar las tablas ni los datos existentes)
+    execScript(this.sql, MIGRATION_V2_SQL)
   }
 
   async fetch(req: Request): Promise<Response> {

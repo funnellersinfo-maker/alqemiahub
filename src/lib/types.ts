@@ -170,3 +170,129 @@ export type AdminStats = {
 export type CopyLabType = "product" | "social" | "ad" | "email"
 
 export type ApiErrorShape = { error: string }
+
+// ============================================================
+// EN VIVO
+// ============================================================
+
+export type LiveStatus = "SCHEDULED" | "LIVE" | "ENDED"
+
+export type LiveSessionDTO = {
+  id: string
+  title: string
+  description: string
+  status: LiveStatus
+  scheduledAt: string
+  coverImage: string | null
+  streamUrl: string | null
+  replayUrl: string | null
+  createdAt: string
+}
+
+export type LiveResponse = {
+  current: LiveSessionDTO | null
+  next: LiveSessionDTO | null
+  replays: LiveSessionDTO[]
+}
+
+// ============================================================
+// MARKETPLACE
+// ============================================================
+
+export type ProductCategory = "MICRO_APP" | "DIGITAL" | "PHYSICAL" | "SERVICE"
+
+export const PRODUCT_CATEGORIES: { value: ProductCategory; label: string }[] = [
+  { value: "MICRO_APP", label: "Micro Apps" },
+  { value: "DIGITAL", label: "Productos Digitales" },
+  { value: "PHYSICAL", label: "Productos Físicos" },
+  { value: "SERVICE", label: "Servicios" },
+]
+
+export function productCategoryLabel(v: string): string {
+  return PRODUCT_CATEGORIES.find((c) => c.value === v)?.label ?? v
+}
+
+export type ProductDTO = {
+  id: string
+  title: string
+  description: string
+  category: ProductCategory | string
+  price: number
+  currency: string
+  commissionPct: number
+  recurring: boolean
+  coverImage: string | null
+  contentUrl: string | null // solo visible al dueño y aliados
+  status: "ACTIVE" | "PAUSED" | string
+  views: number
+  createdAt: string
+  seller: { id: string; name: string; image: string | null; avatarColor: string | null; headline: string | null }
+  isMine: boolean
+  isAlly: boolean // lo tengo en mis Aliados
+  alliesCount: number
+  salesCount: number
+}
+
+export type SaleDTO = {
+  id: string
+  productId: string
+  productTitle: string
+  buyerName: string
+  buyerContact: string | null
+  amount: number
+  currency: string
+  commission: number
+  proofImage: string | null
+  note: string | null
+  status: "PENDING" | "CONFIRMED" | string
+  createdAt: string
+  reseller: { id: string; name: string; image: string | null; avatarColor: string | null }
+}
+
+/** Métricas del negocio de un miembro (como aliado y como creador) */
+export type AllyMetrics = {
+  asAlly: {
+    totalSales: number
+    confirmedSales: number
+    pendingSales: number
+    commissionEarned: number
+    recentSales: SaleDTO[]
+  }
+  asCreator: {
+    totalProducts: number
+    totalSales: number
+    revenue: number // suma de montos confirmados
+    paidToAllies: number // comisiones confirmadas
+    products: {
+      id: string
+      title: string
+      category: string
+      price: number
+      currency: string
+      views: number
+      salesCount: number
+      conversionPct: number
+      allies: {
+        id: string
+        name: string
+        image: string | null
+        avatarColor: string | null
+        salesCount: number
+        revenue: number
+        commission: number
+      }[]
+      pendingSales: SaleDTO[]
+    }[]
+  }
+}
+
+// ============================================================
+// ASISTENTE IA
+// ============================================================
+
+export type ChatMsg = {
+  id: string
+  role: "user" | "assistant"
+  content: string
+  createdAt: string
+}

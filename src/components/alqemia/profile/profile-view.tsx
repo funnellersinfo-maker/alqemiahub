@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
+import { AliadosSection } from "@/components/alqemia/profile/aliados-section"
 import { Skeleton } from "@/components/ui/skeleton"
 import { LevelBadge } from "@/components/alqemia/level-badge"
 import { LevelProgress } from "@/components/alqemia/level-progress"
@@ -250,6 +251,10 @@ export function ProfileView() {
           </div>
         </div>
       </Card>
+
+      <div className="mt-6">
+        <AliadosSection />
+      </div>
 
       <div className="mt-6">
         <Leaderboard />
