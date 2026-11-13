@@ -1,18 +1,10 @@
 // POST /api/tools/copylab — Generador de copy con IA (3 variantes)
+// Usa el motor multi-entorno de @/lib/ai: en producción corre sobre
+// Cloudflare Workers AI (binding AI); en desarrollo, con el SDK local.
 import { NextRequest } from "next/server"
 import { requireActiveUser, errorResponse, handleApiError } from "@/lib/api-helpers"
+import { oracleCompleteWith } from "@/lib/ai"
 import type { CopyLabType } from "@/lib/types"
-
-// En el deploy de Cloudflare el SDK de IA del sandbox no está disponible.
-// La importación es diferida y no estática: si falla, se responde un mensaje amable.
-async function getZAI(): Promise<{ chat: { completions: { create: (opts: unknown) => Promise<{ choices: { message: { content?: string } }[] }> } } }> {
-  const spec = ["z-ai", "web-dev-sdk"].join("-")
-  const mod = (await import(/* webpackIgnore: true */ /* turbopackIgnore: true */ spec).catch(() => null)) as {
-    default?: { create: () => Promise<unknown> }
-  } | null
-  if (!mod?.default?.create) throw new Error("CopyLab IA no disponible en este entorno")
-  return (await mod.default.create()) as never
-}
 
 const COPY_TYPES: readonly CopyLabType[] = ["product", "social", "ad", "email"] as const
 
@@ -102,28 +94,12 @@ export async function POST(req: NextRequest) {
 
     const userPrompt = `${TYPE_PROMPTS[copyType]}\nProducto/servicio: ${product}\nAudiencia: ${audience}\nTono: ${tone}`
 
-    // Generación con SDK (solo backend) + timeout de 60s
+    // Generación con el motor multi-entorno (producción: Workers AI)
     let raw = ""
     try {
-      const zai = await getZAI()
-      const request = zai.chat.completions.create({
-        messages: [
-          { role: "assistant", content: SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
-        ],
-        thinking: { type: "disabled" },
+      raw = await oracleCompleteWith(SYSTEM_PROMPT, [{ role: "user", content: userPrompt }], {
+        maxTokens: 900,
       })
-
-      let timer: ReturnType<typeof setTimeout> | undefined
-      const timeout = new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error("CopyLab timeout")), 60_000)
-      })
-      try {
-        const completion = await Promise.race([request, timeout])
-        raw = completion.choices[0]?.message?.content ?? ""
-      } finally {
-        if (timer) clearTimeout(timer)
-      }
     } catch (err) {
       console.error("[api/tools/copylab] Error generando copy:", err)
       return errorResponse(502, COPYLAB_UNAVAILABLE)

@@ -1,24 +1,17 @@
-// /api/ai/chat — El Oráculo: asistente IA del Hub (z-ai-web-dev-sdk, SOLO backend)
-// GET: historial · POST: mensaje (con contexto multi-turno) · DELETE: nueva conversación
+// /api/ai/chat — El Oráculo: asistente IA del Hub
+// GET: historial · POST: mensaje (multi-turno) · DELETE: nueva conversación
+// El modelo se resuelve en @/lib/ai (Workers AI en producción · SDK local en dev)
 import { NextRequest } from "next/server"
-import ZAI from "z-ai-web-dev-sdk"
 import { db } from "@/lib/db"
 import { requireActiveUser, handleApiError, ApiError } from "@/lib/api-helpers"
+import { oracleComplete } from "@/lib/ai"
 import type { ChatMsg } from "@/lib/types"
-
-const SYSTEM_PROMPT = `Eres El Oráculo, el asistente de IA del Hub ALQEMIA, la academia premium de marketing y ecommerce de la comunidad. Tu misión es ayudar a los miembros a transmutar su marketing en ventas.
-
-Tu estilo:
-- Respondes en español, de forma clara, directa y accionable.
-- Eres experto en: marketing digital, ecommerce (Shopify, WooCommerce, catálogos), Meta Ads, Google Ads, TikTok Ads, copywriting, embudos de venta, email marketing, branding, precios, ofertas, contenido orgánico y estrategia de lanzamientos.
-- Cuando te pidan copys, ideas o planes, entregas opciones concretas y listas para usar (no te quedas en teoría).
-- Usas formato markdown ligero (negritas, listas) para que sea fácil leer.
-- Si preguntan algo ajeno al marketing/negocios, ayudas igual con buena actitud, pero recuerda tu especialidad.
-- Terminas con una pregunta o siguiente paso accionable cuando aporte valor.`
 
 const MAX_HISTORY = 16 // mensajes enviados al modelo como contexto
 const MAX_CONTENT = 8000
 const DAILY_LIMIT = 60 // anti-abuso razonable
+
+type ChatMessage = { role: "user" | "assistant"; content: string }
 
 function toDTO(m: { id: string; role: string; content: string; createdAt: Date }): ChatMsg {
   return {
@@ -68,23 +61,21 @@ export async function POST(req: NextRequest) {
     })
     history.reverse()
 
+    // Guardar el mensaje del usuario ANTES de llamar al modelo
     await db.chatMessage.create({ data: { userId: me.id, role: "user", content: message } })
 
-    const zai = await ZAI.create()
-    const completion = await zai.chat.completions.create({
-      messages: [
-        { role: "assistant", content: SYSTEM_PROMPT },
-        ...history.map((m) => ({
-          role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
-          content: m.content,
-        })),
+    let reply: string
+    try {
+      reply = await oracleComplete([
+        ...history.map((m) => ({ role: m.role === "assistant" ? ("assistant" as const) : ("user" as const), content: m.content })),
         { role: "user", content: message },
-      ],
-      thinking: { type: "disabled" },
-    })
-
-    const reply = completion.choices[0]?.message?.content?.trim()
-    if (!reply) throw new ApiError(502, "El Oráculo no respondió. Intenta de nuevo.")
+      ])
+    } catch (err) {
+      // El modelo falló: se retira el mensaje guardado para no ensuciar el hilo
+      await db.chatMessage.deleteMany({ where: { userId: me.id, role: "user", content: message } })
+      console.error("[api/ai/chat] Error del modelo:", err)
+      throw new ApiError(502, "El Oráculo no pudo responder. Intenta de nuevo en unos segundos.")
+    }
 
     const saved = await db.chatMessage.create({
       data: { userId: me.id, role: "assistant", content: reply.slice(0, MAX_CONTENT) },

@@ -17,6 +17,9 @@
       }
     ]
   },
+  "ai": {
+    "binding": "AI"
+  },
   "vars": {
     "NEXTAUTH_URL": "https://alqemiahub.mastershop-funnellers.workers.dev",
     "ADMIN_ACCESS_KEY": "ALQEMIA-ADMIN-2025",
