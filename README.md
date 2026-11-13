@@ -86,21 +86,42 @@ Registro e ingreso únicamente con **email y contraseña** (abierto a cualquier 
 
 La creación de cuenta termina en un quiz de 5 preguntas (avatar → especialidades → objetivos → nivel → bio) con **% de perfil en vivo**: cada pieza vale 20% y el medidor sube con cada respuesta. Al completar: +100 XP, nivel, y celebración. El perfil del usuario muestra su % de completitud y qué falta para el 100% (editable desde el diálogo de perfil, incluido el nivel de experiencia).
 
+### App instalable (PWA)
+
+La plataforma se instala como app real: en **PC/Android** aparece el banner "Instalar app" (queda anclada al escritorio/barra de tareas/launcher con su ícono dorado) y en **iPhone** la tarjeta muestra los pasos (Compartir → Añadir a pantalla de inicio). Incluye `manifest.webmanifest`, service worker con caché offline del shell e íconos maskable. Los atajos del ícono (long-press / right-click): El Oráculo, Marketplace y En Vivo.
+
+### En Vivo (transmisiones)
+
+Sección con **punto rojo titilante** en el menú cuando hay transmisión activa. Desde el Panel de Administración → En Vivo, el titular programa lives con **imagen de anuncio 16:9**, reseña, fecha y link; al pulsar "Activar EN VIVO" el punto rojo enciende para toda la comunidad (reproductor grande embebido). Al finalizar, se guarda el link de la **grabación** y queda listada en la sección. Transmite con YouTube Live (gratis, se incrusta) o Meet/Zoom (botón "Unirse"). Sin live: "Próximamente" con la imagen, la fecha y un contador.
+
+### Marketplace (con aliados y comprobantes)
+
+Mercado interno con 4 categorías: **Micro Apps, Productos Digitales, Productos Físicos y Servicios**. Cualquier miembro publica (precio, comisión % para aliados, recurrente, portada 16:9, link al material en Drive/Notion — visible solo para el creador y sus aliados). Otros lo agregan a **Mis Aliados** y lo revenden: registran la venta con **comprobante de pago** (imagen), queda pendiente y el creador la confirma desde su perfil. En **Perfil → Mis Aliados** cada miembro ve su negocio: comisiones ganadas, quién revende sus productos, cuánto vende y gana cada aliado, y la conversión (ventas/vistas) de cada producto. Sin pasarelas de pago: cobro por medios locales con comprobante adjunto.
+
+### El Oráculo (asistente IA) y CopyLab
+
+Chat IA tipo ChatGPT multi-turno con historial persistente por miembro (límite razonable de 60 mensajes/día). En **producción** corre sobre **Cloudflare Workers AI** (binding `AI`, capa gratuita, sin API keys) con Llama 3.3 70B; en desarrollo usa el SDK local del sandbox (`src/lib/ai.ts` resuelve el modo). El CopyLab usa el mismo motor, por lo que también funciona en producción.
+
+### Whalink (en Herramientas)
+
+Generador de enlaces de WhatsApp: número con código de país + mensaje precargado → link `wa.me` corto copiable + **QR HD 1024px con el logo de ALQEMIA al centro** (corrección de errores H, verificable al escaneo). Descargable y regenerable las veces que sea.
+
 ## Estructura
 
 ```
 src/
   app/
     page.tsx              # única ruta: Splash → Auth → Onboarding → Hub
-    api/                  # auth, me, feed, posts, courses, lessons, leaderboard, admin, tools
+    api/                  # auth, me, feed, posts, courses, lessons, leaderboard, live, marketplace, ai/chat, admin, tools
   components/
-    alqemia/              # auth, onboarding, feed (muro), classroom, tools, profile, admin
+    alqemia/              # auth, onboarding, feed (muro), live, classroom, marketplace, tools, ai (oráculo), profile, admin
+    pwa/                  # service worker + banner de instalación
     ui/                   # shadcn/ui
-  lib/                    # auth, db, gamificación (XP/niveles/logros), store, tipos
+  lib/                    # auth, db, ai (motor IA), gamificación (XP/niveles/logros), store, tipos
 prisma/
-  schema.prisma           # User, Post, Comment, Like, Course, Lesson, LessonProgress, Achievement
+  schema.prisma           # User, Post, Comment, Like, Course, Lesson, LessonProgress, Achievement, LiveSession, Product, ProductFavorite, Sale, ChatMessage
   seed.ts                 # contenido inicial completo
-public/images/            # logo ALQEMIA, héroe y portadas de programas
+public/                   # manifest.webmanifest, sw.js, íconos PWA, imágenes
 ```
 
 ## Gamificación
