@@ -14,6 +14,7 @@ CREATE TABLE "User" (
     "goal" TEXT,
     "experience" TEXT,
     "profileCompleted" BOOLEAN NOT NULL DEFAULT false,
+    "tourCompletedAt" DATETIME,
     "xp" INTEGER NOT NULL DEFAULT 0,
     "lastActiveAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -93,6 +94,19 @@ CREATE TABLE "Achievement" (
     "code" TEXT NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Achievement_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable (INVITACIONES — registro solo por invitación del titular)
+CREATE TABLE "InviteCode" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "code" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "note" TEXT,
+    "createdBy" TEXT NOT NULL,
+    "usedAt" DATETIME,
+    "usedById" TEXT,
+    "expiresAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- CreateTable (EN VIVO)
@@ -207,4 +221,10 @@ CREATE INDEX "Sale_resellerId_idx" ON "Sale"("resellerId");
 CREATE INDEX "Sale_productId_idx" ON "Sale"("productId");
 CREATE INDEX "Sale_status_idx" ON "Sale"("status");
 CREATE INDEX "ChatMessage_userId_createdAt_idx" ON "ChatMessage"("userId", "createdAt");
+
+-- CreateIndex (INVITACIONES)
+CREATE UNIQUE INDEX "InviteCode_code_key" ON "InviteCode"("code");
+CREATE UNIQUE INDEX "InviteCode_email_key" ON "InviteCode"("email");
+CREATE INDEX "InviteCode_email_idx" ON "InviteCode"("email");
+CREATE INDEX "InviteCode_createdAt_idx" ON "InviteCode"("createdAt");
 

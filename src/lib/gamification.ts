@@ -16,9 +16,10 @@ export const XP_REWARDS = {
   lesson: 25,
   profile: 100,
   courseBonus: 50,
+  tour: 25,
 } as const
 
-export type XpAction = "post" | "comment" | "lesson" | "profile" | "courseBonus"
+export type XpAction = "post" | "comment" | "lesson" | "profile" | "courseBonus" | "tour"
 
 export async function grantAchievement(userId: string, code: string): Promise<XpAchievement | null> {
   if (!ACHIEVEMENTS[code]) return null
@@ -78,6 +79,8 @@ export async function awardXpFor(
     }
   } else if (action === "profile") {
     achievement = await grantAchievement(userId, "perfil_completo")
+  } else if (action === "tour") {
+    achievement = await grantAchievement(userId, "mapa_descifrado")
   }
 
   const updated = await db.user.update({

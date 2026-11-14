@@ -28,6 +28,7 @@ model User {
   goal             String? // objetivo principal
   experience       String? // nivel del quiz: "starter" | "growing" | "scaling"
   profileCompleted Boolean   @default(false)
+  tourCompletedAt  DateTime? // null → el tour del mapa está pendiente
   xp               Int       @default(0)
   lastActiveAt     DateTime  @default(now())
   createdAt        DateTime  @default(now())
@@ -44,6 +45,26 @@ model User {
   chatMessages ChatMessage[]
 
   @@index([xp])
+}
+
+// ============================================================
+// INVITACIONES — códigos únicos generados por el titular desde
+// el panel admin. El correo y el código deben coincidir al
+// registrarse; un código solo puede usarse una vez.
+// ============================================================
+model InviteCode {
+  id        String    @id @default(cuid())
+  code      String    @unique // formato ALQ-XXXX-XXXX
+  email     String    @unique // correo con el que DEBE registrarse
+  note      String? // nota interna del titular (opcional)
+  createdBy String // id del admin que lo generó
+  usedAt    DateTime? // null → aún no usado
+  usedById  String? // id del miembro que lo usó
+  expiresAt DateTime? // caducidad opcional
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+  @@index([createdAt])
 }
 
 // ============================================================

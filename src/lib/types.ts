@@ -50,6 +50,7 @@ export type MeUser = {
   xp: number
   status: UserStatus
   profileCompleted: boolean
+  tourCompletedAt: string | null
   createdAt: string
   level: LevelInfo
   achievements: MeAchievement[]
@@ -187,6 +188,24 @@ export type CopyLabAwareness =
   | "most"
 
 export type ApiErrorShape = { error: string }
+
+// ============================================================
+// INVITACIONES (registro solo por código del titular)
+// ============================================================
+
+export type InviteStatus = "PENDING" | "USED" | "EXPIRED"
+
+export type InviteDTO = {
+  id: string
+  code: string
+  email: string
+  note: string | null
+  status: InviteStatus
+  createdAt: string
+  usedAt: string | null
+  usedBy: string | null // email del miembro que lo usó
+  expiresAt: string | null
+}
 
 // ============================================================
 // EN VIVO

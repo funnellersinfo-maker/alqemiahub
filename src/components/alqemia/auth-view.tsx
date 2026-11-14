@@ -7,10 +7,11 @@
 // giratorio, botones con sheen y cinta de códice al final.
 // ============================================================
 
-import { useState, type FormEvent } from "react"
+import { useCallback, useState, type FormEvent } from "react"
 import { signIn } from "next-auth/react"
 import {
   GraduationCap,
+  KeyRound,
   Loader2,
   Users,
   Wrench,
@@ -22,6 +23,7 @@ import { AlchemyBackground } from "@/components/alqemia/fx/alchemy-background"
 import { GoldenPortal } from "@/components/alqemia/fx/golden-portal"
 import { KineticWordmark } from "@/components/alqemia/fx/kinetic-wordmark"
 import { Marquee } from "@/components/alqemia/fx/marquee"
+import { RegisterEducation } from "@/components/alqemia/register-education"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -57,11 +59,16 @@ export function AuthView() {
   const [loginPassword, setLoginPassword] = useState("")
   const [loginLoading, setLoginLoading] = useState(false)
 
-  // Registro con email
+  // Registro con email + código de invitación
   const [regName, setRegName] = useState("")
   const [regEmail, setRegEmail] = useState("")
   const [regPassword, setRegPassword] = useState("")
+  const [regInvite, setRegInvite] = useState("")
   const [regLoading, setRegLoading] = useState(false)
+
+  // Educación gamificada tras sellar la invitación (El Códice)
+  const [education, setEducation] = useState<null | { name: string; email: string; password: string }>(null)
+  const [unlocking, setUnlocking] = useState(false)
 
   async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -89,30 +96,60 @@ export function AuthView() {
       toast.error("La contraseña debe tener al menos 6 caracteres")
       return
     }
+    if (!regInvite.trim()) {
+      toast.error("Ingresa tu código de invitación")
+      return
+    }
     setRegLoading(true)
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password: regPassword }),
+        body: JSON.stringify({
+          name,
+          email,
+          password: regPassword,
+          inviteCode: regInvite.trim(),
+        }),
       })
       if (!res.ok) {
         const errorData = (await res.json().catch(() => null)) as ApiErrorShape | null
         toast.error(errorData?.error ?? "No se pudo crear tu cuenta")
         return
       }
-      const result = await signIn("credentials", {
-        email,
-        password: regPassword,
-        redirect: false,
-      })
-      if (result?.error) toast.error("Cuenta creada. Ingresa desde la pestaña Ingresar.")
+      // Invitación sellada → El Códice educa al prospecto antes de entrar
+      setEducation({ name, email, password: regPassword })
     } catch {
       toast.error("No se pudo crear tu cuenta. Intenta de nuevo.")
     } finally {
       setRegLoading(false)
     }
   }
+
+  /** Al terminar el Códice: cruce dopaminérgico de la puerta */
+  const handleUnlock = useCallback(async () => {
+    if (!education) return
+    setUnlocking(true)
+    try {
+      const result = await signIn("credentials", {
+        email: education.email,
+        password: education.password,
+        redirect: false,
+      })
+      if (result?.error) {
+        toast.success("Cuenta creada. Ingresa desde la pestaña Ingresar.")
+        setEducation(null)
+        setTab("login")
+      }
+      // Si el login es correcto, la sesión actualiza y el Hub toma el relevo.
+    } catch {
+      toast.error("No se pudo ingresar. Usa la pestaña Ingresar.")
+      setEducation(null)
+      setTab("login")
+    } finally {
+      setUnlocking(false)
+    }
+  }, [education])
 
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-[#050505]">
@@ -121,11 +158,17 @@ export function AuthView() {
 
       {/* ============ ESCENA ============ */}
       <main className="relative z-10 flex flex-1 flex-col items-center px-4 pb-12 pt-10 sm:pt-14">
-        <div className="flex w-full flex-1 flex-col items-center justify-center gap-7 sm:gap-9">
-          {/* El Portal Dorado con chips orbitando (desktop) */}
+        <div
+          className={cn(
+            "flex w-full flex-1 flex-col items-center justify-center",
+            education ? "gap-4 sm:gap-5" : "gap-7 sm:gap-9"
+          )}
+        >
+          {/* El Portal Dorado con chips orbitando (escena compacta durante el Códice) */}
           <div className="relative">
-            <GoldenPortal size={168} />
-            {ORBIT_CHIPS.map((chip) => (
+            <GoldenPortal size={education ? 88 : 168} />
+            {!education &&
+              ORBIT_CHIPS.map((chip) => (
               <div
                 key={chip.label}
                 aria-hidden="true"
@@ -143,14 +186,27 @@ export function AuthView() {
 
           {/* Wordmark cinético + promesa */}
           <div className="animate-fade-up text-center [animation-delay:0.75s]">
-            <KineticWordmark className="text-2xl sm:text-3xl" />
-            <p className="mt-3 max-w-xs text-balance text-sm leading-relaxed text-zinc-400 sm:max-w-none sm:text-base">
+            <KineticWordmark className={education ? "text-lg sm:text-xl" : "text-2xl sm:text-3xl"} />
+            <p
+              className={cn(
+                "mt-3 max-w-xs text-balance text-sm leading-relaxed text-zinc-400 sm:max-w-none",
+                education ? "hidden" : "sm:text-base"
+              )}
+            >
               Donde el marketing se{" "}
               <span className="gold-text font-semibold">transmuta</span> en ventas
             </p>
           </div>
 
           {/* ============ LA PUERTA ============ */}
+          {education ? (
+            <RegisterEducation
+              key={education.email}
+              name={education.name}
+              unlocking={unlocking}
+              onUnlock={() => void handleUnlock()}
+            />
+          ) : (
           <div
             className="gate-card animate-fade-up w-full max-w-md p-5 [animation-delay:0.9s] sm:p-7"
           >
@@ -249,11 +305,32 @@ export function AuthView() {
                       onChange={(e) => setRegPassword(e.target.value)}
                     />
                   </div>
+                  <div>
+                    <Label htmlFor="register-invite" className="flex items-center gap-1.5">
+                      <KeyRound className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
+                      Código de invitación
+                    </Label>
+                    <Input
+                      id="register-invite"
+                      type="text"
+                      required
+                      autoCapitalize="characters"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      placeholder="ALQ-XXXX-XXXX"
+                      className={cn(INPUT_GOLD, "mt-2 font-mono tracking-widest uppercase")}
+                      value={regInvite}
+                      onChange={(e) => setRegInvite(e.target.value.toUpperCase())}
+                    />
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-zinc-500">
+                      El registro es exclusivo: tu código fue emitido por ALQEMIA para este mismo correo.
+                    </p>
+                  </div>
                   <Button type="submit" className="btn-gold h-11 w-full font-semibold" disabled={regLoading}>
                     {regLoading ? (
                       <Loader2 className="animate-spin" aria-hidden="true" />
                     ) : null}
-                    Forjar mi cuenta
+                    Sellar mi invitación
                   </Button>
                 </form>
               </TabsContent>
@@ -264,6 +341,7 @@ export function AuthView() {
               <br />© ALQEMIA · Marketing & Ecommerce
             </p>
           </div>
+          )}
         </div>
       </main>
 

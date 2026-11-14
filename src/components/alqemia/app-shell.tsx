@@ -40,6 +40,7 @@ import { ToolsView } from "@/components/alqemia/tools/tools-view"
 import { ProfileView } from "@/components/alqemia/profile/profile-view"
 import { AdminView } from "@/components/alqemia/admin/admin-view"
 import { AdminGate } from "@/components/alqemia/admin/admin-gate"
+import { TourOverlay } from "@/components/alqemia/tour/tour-overlay"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 
@@ -172,6 +173,7 @@ export function AppShell() {
             return (
               <button
                 key={key}
+                data-tour={key}
                 onClick={() => setView(key)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
@@ -317,6 +319,7 @@ export function AppShell() {
           return (
             <button
               key={key}
+              data-tour={key}
               onClick={() => setView(key)}
               aria-current={active ? "page" : undefined}
               className={cn(
@@ -433,6 +436,9 @@ export function AppShell() {
 
       {/* Modal de la clave del admin */}
       <AdminGate />
+
+      {/* El Mapa del Gremio: tour obligatorio la primera vez que se abre el Hub */}
+      {user && user.tourCompletedAt === null && <TourOverlay userName={user.name} />}
     </div>
   )
 }

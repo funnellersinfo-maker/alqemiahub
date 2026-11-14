@@ -24,6 +24,7 @@ async function buildMeUser(userId: string): Promise<MeUser> {
     xp: user.xp,
     status: user.status === "BLOCKED" ? "BLOCKED" : "ACTIVE",
     profileCompleted: user.profileCompleted,
+    tourCompletedAt: user.tourCompletedAt ? user.tourCompletedAt.toISOString() : null,
     createdAt: user.createdAt.toISOString(),
     level: getLevelInfo(user.xp),
     achievements: user.achievements.map((a) => ({
@@ -93,12 +94,18 @@ export async function PATCH(req: NextRequest) {
     if (body.profileCompleted === true && !user.profileCompleted) {
       data.profileCompleted = true
     }
+    // Tour del mapa completado (primera vez que el miembro recorre el hub)
+    if (body.tourCompleted === true && !user.tourCompletedAt) {
+      data.tourCompletedAt = new Date()
+    }
 
     if (Object.keys(data).length > 0) {
       await db.user.update({ where: { id: user.id }, data })
     }
     if (data.profileCompleted === true) {
       xpEvent = await awardXpFor(user.id, "profile")
+    } else if (data.tourCompletedAt) {
+      xpEvent = await awardXpFor(user.id, "tour")
     }
 
     const me = await buildMeUser(user.id)

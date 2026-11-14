@@ -140,6 +140,25 @@ CREATE TABLE IF NOT EXISTS "ChatMessage" (
 CREATE INDEX IF NOT EXISTS "ChatMessage_userId_createdAt_idx" ON "ChatMessage"("userId", "createdAt");
 `
 
+// v3 — INVITACIONES (registro solo por código del titular). Idempotente.
+const MIGRATION_V3_SQL = `
+CREATE TABLE IF NOT EXISTS "InviteCode" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "code" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "note" TEXT,
+    "createdBy" TEXT NOT NULL,
+    "usedAt" DATETIME,
+    "usedById" TEXT,
+    "expiresAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "InviteCode_code_key" ON "InviteCode"("code");
+CREATE UNIQUE INDEX IF NOT EXISTS "InviteCode_email_key" ON "InviteCode"("email");
+CREATE INDEX IF NOT EXISTS "InviteCode_email_idx" ON "InviteCode"("email");
+CREATE INDEX IF NOT EXISTS "InviteCode_createdAt_idx" ON "InviteCode"("createdAt");
+`
+
 export class HubDB extends DurableObject {
   private initialized = false
 
@@ -177,6 +196,17 @@ export class HubDB extends DurableObject {
     // v2: EN VIVO + MARKETPLACE + ASISTENTE IA (CREATE TABLE IF NOT EXISTS:
     // crea lo que falte sin tocar las tablas ni los datos existentes)
     execScript(this.sql, MIGRATION_V2_SQL)
+    // v3: columna User.tourCompletedAt (tour obligatorio del mapa). Si la
+    // columna acaba de crearse, los miembros existentes ya conocen el hub:
+    // se les marca el tour como completado para que solo lo vean los nuevos.
+    try {
+      this.sql.exec('ALTER TABLE "User" ADD COLUMN "tourCompletedAt" DATETIME')
+      this.sql.exec('UPDATE "User" SET "tourCompletedAt" = CURRENT_TIMESTAMP')
+    } catch {
+      // La columna ya existe: nada que hacer
+    }
+    // v3: INVITACIONES (CREATE TABLE IF NOT EXISTS)
+    execScript(this.sql, MIGRATION_V3_SQL)
   }
 
   async fetch(req: Request): Promise<Response> {

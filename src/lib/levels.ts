@@ -53,6 +53,7 @@ export function getLevelInfo(xp: number): LevelInfo {
 // Logros disponibles — icono = nombre de icono de lucide-react
 export const ACHIEVEMENTS: Record<string, { label: string; icon: string }> = {
   perfil_completo: { label: "Perfil Transmutado", icon: "Sparkles" },
+  mapa_descifrado: { label: "Mapa Descifrado", icon: "Map" },
   primer_post: { label: "Primera Transmutación", icon: "FlaskConical" },
   tres_posts: { label: "Voz de la Comunidad", icon: "Megaphone" },
   primer_comentario: { label: "Conversador Nato", icon: "MessageCircle" },

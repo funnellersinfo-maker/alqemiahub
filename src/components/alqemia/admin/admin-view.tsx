@@ -62,6 +62,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EmptyState } from "@/components/alqemia/empty-state"
 import { UserAvatar } from "@/components/alqemia/avatar"
+import { InvitesManager } from "@/components/alqemia/admin/invites-manager"
 import { LiveManager } from "@/components/alqemia/admin/live-manager"
 
 // ============================================================
@@ -751,6 +752,7 @@ export function AdminView() {
         <TabsList className="max-w-full overflow-x-auto">
           <TabsTrigger value="resumen">Resumen</TabsTrigger>
           <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
+          <TabsTrigger value="invitaciones">Invitaciones</TabsTrigger>
           <TabsTrigger value="contenido">Contenido</TabsTrigger>
           <TabsTrigger value="envivo">En Vivo</TabsTrigger>
         </TabsList>
@@ -759,6 +761,9 @@ export function AdminView() {
         </TabsContent>
         <TabsContent value="usuarios" className="mt-4">
           <UsersTab />
+        </TabsContent>
+        <TabsContent value="invitaciones" className="mt-4">
+          <InvitesManager />
         </TabsContent>
         <TabsContent value="contenido" className="mt-4">
           <ContentTab />
