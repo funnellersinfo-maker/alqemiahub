@@ -1,6 +1,6 @@
 # ALQEMIA — Hub de Marketing & Ecommerce
 
-Plataforma tipo Whop/Hotmart para la academia **ALQEMIA**: registro abierto para la comunidad, muro social de miembros, classroom con programas grabados, herramientas de crecimiento (Calculadora de Precios + CopyLab IA), gamificación con niveles de alquimia, ranking y panel de administración con clave.
+Plataforma tipo Whop/Hotmart para la academia **ALQEMIA**: registro abierto para la comunidad, muro social de miembros, classroom con programas grabados, El Arsenal de Herramientas por categorías (CopyLab de Élite, Calculadora de Precios, Whalink), El Oráculo con IA en vivo + búsqueda web, gamificación con niveles de alquimia, ranking y panel de administración con clave.
 
 ## Stack
 
@@ -100,11 +100,19 @@ Mercado interno con 4 categorías: **Micro Apps, Productos Digitales, Productos 
 
 ### El Oráculo (asistente IA) y CopyLab
 
-Chat IA tipo ChatGPT multi-turno con historial persistente por miembro (límite razonable de 60 mensajes/día). En **producción** corre sobre **Cloudflare Workers AI** (binding `AI`, capa gratuita, sin API keys) con Llama 3.3 70B; en desarrollo usa el SDK local del sandbox (`src/lib/ai.ts` resuelve el modo). El CopyLab usa el mismo motor, por lo que también funciona en producción.
+Chat IA tipo ChatGPT **fluido tipo WhatsApp**: tu mensaje sale al instante (eco optimista) y la respuesta llega **palabra por palabra en vivo** (streaming NDJSON sobre Workers AI en producción / SDK local en dev), con cursor dorado mientras escribe. Multi-turno con historial persistente por miembro (límite razonable de 60 mensajes/día) y **fecha de hoy** en el contexto del modelo. En **producción** corre sobre **Cloudflare Workers AI** (binding `AI`, capa gratuita, sin API keys) con Llama 3.3 70B.
 
-### Whalink (en Herramientas)
+**Toggle "Internet"**: cuando lo activas, El Oráculo **busca en la web antes de responder** (cadena multi-entorno: SDK local → Bing RSS → DuckDuckGo, todo sin API keys), te muestra las fuentes como chips enlazables y el modelo cita los links en una sección "Fuentes".
+
+**CopyLab de Élite** (mismo motor IA): 3 variantes con los más altos estándares de copywriting — frameworks **AIDA · PAS · PASTOR**, selector de **nivel de conciencia de Eugene Schwartz** (5 niveles + automático), cada variante lista con sus **gatillos mentales/sesgos** usados y el **"por qué convierte"** (la psicología explicada en una frase).
+
+### Whalink (en Herramientas → Clientes & Contacto)
 
 Generador de enlaces de WhatsApp: número con código de país + mensaje precargado → link `wa.me` corto copiable + **QR HD 1024px con el logo de ALQEMIA al centro** (corrección de errores H, verificable al escaneo). Descargable y regenerable las veces que sea.
+
+### El Arsenal (Herramientas)
+
+La sección Herramientas abre con una bienvenida elegante — **El Arsenal de ALQEMIA** — y organiza todo por categorías en submenú: **Copys & Persuasión** (CopyLab de Élite + próximamente Creativos y Plantillas), **Precios & Estrategia** (Calculadora de Precios + próximamente KPIs y Competencia) y **Clientes & Contacto** (Whalink). Nada de herramientas sueltas: cada categoría se abre y se vuelve con un clic.
 
 ## Estructura
 
