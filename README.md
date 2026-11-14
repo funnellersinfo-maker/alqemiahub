@@ -36,11 +36,11 @@ La plataforma vive en dos Workers del mismo account:
 
 | Recurso | URL | Rol |
 | --- | --- | --- |
-| **Enlace corto para compartir** | **https://alqemiahub.pages.dev** | Redirige (302) al hub — es el link oficial para comunidades |
-| `alqemiahub` | https://alqemiahub.mastershop-funnellers.workers.dev | La app completa (Next.js 16 vía OpenNext) |
+| **Enlace oficial (limpio)** | **https://alqemiahub.pages.dev** | Sirve TODO el Hub (portal inverso): la URL **nunca** cambia a workers.dev — link para comunidades |
+| `alqemiahub` | https://alqemiahub.mastershop-funnellers.workers.dev | La app completa (Next.js 16 vía OpenNext) — dominio interno: visita directa → 308 al enlace oficial |
 | `alqemia-db` | https://alqemia-db.mastershop-funnellers.workers.dev | Base de datos (Durable Object SQLite) — solo `/health` público |
 
-El enlace corto vive en un proyecto de Cloudflare Pages (`alqemiahub`) cuyo único contenido es un redirect (`pages-redirect/_redirects`). Para cambiar su destino, edita ese archivo y vuelve a desplegar: `bunx wrangler pages deploy pages-redirect --project-name alqemiahub --branch main`.
+El enlace oficial vive en un proyecto de Cloudflare Pages (`alqemiahub`) que actúa como **portal inverso** (`pages-portal/_worker.js`): sirve cada petición del Hub proxificada al worker, así la barra de direcciones permanece siempre en `pages.dev` (y evita bloqueos de operadores móviles que filtran `*.workers.dev`). El middleware `src/middleware.ts` redirige (308) cualquier visita directa al dominio interno hacia el enlace limpio, excepto las peticiones internas del portal (cabecera `x-alqemia-portal`), lo que impide bucles. `NEXTAUTH_URL` apunta a `https://alqemiahub.pages.dev`. Para cambiar el portal, edita `pages-portal/_worker.js` y vuelve a desplegar: `bunx wrangler pages deploy pages-portal --project-name alqemiahub --branch main`.
 
 ### Dominio propio `alqemiahub.dev`
 
@@ -53,7 +53,7 @@ El dominio está **disponible** (verificado en el registro de Google). Para usar
 "routes": [{ "pattern": "alqemiahub.dev", "custom_domain": true }]
 ```
 
-3. Actualiza la variable `NEXTAUTH_URL` en `wrangler.jsonc` a `https://alqemiahub.dev`, el destino en `pages-redirect/_redirects` y redespliega (`bunx opennextjs-cloudflare build && bunx wrangler deploy`).
+3. Actualiza la variable `NEXTAUTH_URL` en `wrangler.jsonc`, los hosts en `pages-portal/_worker.js` y `src/middleware.ts`, y redespliega (`bunx opennextjs-cloudflare build && bunx wrangler deploy && bunx wrangler pages deploy pages-portal --project-name alqemiahub --branch main`).
 
 Arquitectura de datos: `Prisma 6 (driverAdapters)` → `@prisma/adapter-d1` → shim `RemoteSqlDatabase` (`src/lib/cf-sql.ts`) → Durable Object `HubDB` (`db-worker/index.ts`) con SQLite real y auto-inicialización (esquema + datos iniciales incluidos en `db-worker/schema.sql` y `db-worker/seed.sql`).
 
@@ -66,7 +66,11 @@ cd db-worker && bunx wrangler deploy && cd ..
 # 2) Aplicación
 bunx opennextjs-cloudflare build
 bunx wrangler deploy
+# 3) Portal del enlace limpio (solo si cambió pages-portal/_worker.js)
+bunx wrangler pages deploy pages-portal --project-name alqemiahub --branch main
 ```
+
+Todas las operaciones usan `CLOUDFLARE_API_TOKEN` (token vigente del titular; rotable desde el dashboard de Cloudflare).
 
 Variables/secretos del worker `alqemiahub`:
 

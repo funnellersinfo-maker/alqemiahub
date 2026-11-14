@@ -1,0 +1,4 @@
+ALQEMIA — Portal activo.
+Este proyecto de Pages sirve el Hub completo en https://alqemiahub.pages.dev
+como proxy inverso del Worker alqemiahub (workers.dev).
+Consulta pages-portal/_worker.js y la sección de deploy del README.
