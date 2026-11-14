@@ -676,6 +676,23 @@
   color: #f5d77a;
 }
 
+/* Cursor titilante del Oráculo mientras escribe en vivo */
+.oracle-cursor {
+  display: inline-block;
+  width: 0.5em;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #f5d77a, #d4af37);
+  animation: oracle-blink 0.9s steps(2, start) infinite;
+}
+@keyframes oracle-blink {
+  to {
+    opacity: 0;
+  }
+}
+
 /* Accesibilidad: menos movimiento cuando el usuario lo pide */
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee,

@@ -169,6 +169,23 @@ export type AdminStats = {
 
 export type CopyLabType = "product" | "social" | "ad" | "email"
 
+/** Variante de copy de élite: framework + texto + gatillos usados + por qué funciona. */
+export type CopyLabVariant = {
+  framework: string
+  copy: string
+  triggers: string[]
+  why: string
+}
+
+/** Niveles de conciencia de Eugene Schwartz (elevación de conciencia). */
+export type CopyLabAwareness =
+  | "auto"
+  | "unconscious"
+  | "problem"
+  | "solution"
+  | "product"
+  | "most"
+
 export type ApiErrorShape = { error: string }
 
 // ============================================================
