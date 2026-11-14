@@ -1,6 +1,6 @@
 # ALQEMIA — Hub de Marketing & Ecommerce
 
-Plataforma tipo Whop/Hotmart para la academia **ALQEMIA**: registro abierto para la comunidad, muro social de miembros, classroom con programas grabados, El Arsenal de Herramientas por categorías (CopyLab de Élite, Calculadora de Precios, Whalink), El Oráculo con IA en vivo + búsqueda web, gamificación con niveles de alquimia, ranking y panel de administración con clave.
+Plataforma tipo Whop/Hotmart para la academia **ALQEMIA**: registro **solo por invitación** (códigos únicos generados desde el panel admin y atados al correo del prospecto), educación gamificada en el registro (**El Códice**: XP, rangos y mapa), tour obligatorio de bienvenida (**El Mapa del Gremio**), muro social de miembros, classroom con programas grabados, El Arsenal de Herramientas por categorías (CopyLab de Élite, Calculadora de Precios, Whalink), El Oráculo con IA en vivo + búsqueda web, gamificación con niveles de alquimia, ranking y panel de administración con clave.
 
 ## Stack
 
@@ -78,13 +78,21 @@ El worker `alqemia-db` expone `POST /admin/reseed` (interno) para restaurar el c
 
 > Nota: la herramienta CopyLab IA depende del SDK del entorno de desarrollo; en Cloudflare responde con un mensaje de no disponible. Todo lo demás (registro, login, muro, classroom, gamificación, admin, métricas) funciona 100% en producción.
 
-### Acceso de miembros
+### Acceso de miembros (solo por invitación)
 
-Registro e ingreso únicamente con **email y contraseña** (abierto a cualquier visitante). Al crear la cuenta, el miembro entra directo al Ritual de Iniciación (quiz de perfil). El acceso social con Google/Microsoft se retiró deliberadamente; su implementación queda en el historial de git (commit `fda7849`) por si algún día se desea reactivar.
+El registro **ya no es abierto**: cada nuevo miembro necesita un **código de invitación único** que el titular genera desde **Panel de Administración → Invitaciones**, ingresando **el correo con el que el prospecto se va a registrar**. En el registro, **correo y código deben coincidir** y un código sirve **una sola vez** (formato `ALQ-XXXX-XXXX`). El panel permite copiar, regenerar (si sigue pendiente) y eliminar invitaciones, y muestra el estado de cada una (Pendiente / Usado). Ingreso únicamente con **email y contraseña**. El acceso social con Google/Microsoft se retiró deliberadamente; su implementación queda en el historial de git (commit `fda7849`) por si algún día se desea reactivar.
+
+### El Códice del Alquimista (educación en el registro)
+
+Al sellar su invitación, el prospecto no entra directo: primero recibe **El Códice**, 4 lecciones gamificadas de 20 segundos que le enseñan **qué es el XP y cuánto vale cada acción** (+15 publicar, +5 comentar, +25 lección, +50 programa, +100 perfil), **los 8 rangos del gremio** (Aprendiz → Leyenda, con el ranking) y **el mapa del Hub** (las 7 salas). Al final, "Desbloquear mi acceso" dispara la animación **ACCESO CONCEDIDO** e inicia sesión automáticamente.
 
 ### Ritual de Iniciación (onboarding gamificado)
 
 La creación de cuenta termina en un quiz de 5 preguntas (avatar → especialidades → objetivos → nivel → bio) con **% de perfil en vivo**: cada pieza vale 20% y el medidor sube con cada respuesta. Al completar: +100 XP, nivel, y celebración. El perfil del usuario muestra su % de completitud y qué falta para el 100% (editable desde el diálogo de perfil, incluido el nivel de experiencia).
+
+### El Mapa del Gremio (tour obligatorio de primera apertura)
+
+La primera vez que un miembro abre el Hub, **El Mapa del Gremio** lo recibe: burbujas emergentes que lo llevan **sección por sección** (Muro → En Vivo → Classroom → Marketplace → Herramientas → El Oráculo → Perfil) con un **foco dorado** que ilumina el ítem real del menú mientras la sección se muestra detrás. Cada burbuja explica qué encontrará ahí y **exige presionar Continuar** para avanzar y desbloquear; no se puede saltar ni cerrar. Al completar el recorrido: **+25 XP y el logro "Mapa Descifrado"**, y el miembro queda libre en su plataforma (solo se muestra una vez, persistido en `User.tourCompletedAt`; los miembros existentes antes del deploy quedan exentos).
 
 ### App instalable (PWA)
 
