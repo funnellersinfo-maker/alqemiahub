@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { CourseSummary } from "@/lib/types"
+import { AlqemiaLetters } from "@/components/alqemia/fx/alqemia-lettering"
 
 type CoursesResponse = { courses: CourseSummary[] }
 
@@ -91,7 +92,7 @@ export function ClassroomView() {
   return (
     <div className="mx-auto w-full max-w-5xl px-0">
       <header className="mb-4 sm:mb-6">
-        <h1 className="font-display text-2xl font-semibold tracking-tight">Classroom</h1>
+        <h1 className="text-2xl"><AlqemiaLetters text="Classroom" strokeWidth={8} /></h1>
         <p className="mt-1 text-sm text-zinc-500">
           Programas de formación grabados de ALQEMIA. Aprende a tu ritmo.
         </p>

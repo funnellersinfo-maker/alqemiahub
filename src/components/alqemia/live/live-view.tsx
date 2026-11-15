@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useState } from "react"
 import { useMe } from "@/hooks/use-me"
 import { cn } from "@/lib/utils"
+import { AlqemiaLetters } from "@/components/alqemia/fx/alqemia-lettering"
 import type { LiveResponse, LiveSessionDTO } from "@/lib/types"
 
 /** Punto rojo mágico: titila con brillo mientras hay transmisión */
@@ -207,7 +208,7 @@ export function LiveView() {
       <header className="flex flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2.5">
-            <h1 className="font-display text-2xl font-semibold tracking-tight">En Vivo</h1>
+            <h1 className="text-2xl"><AlqemiaLetters text="En Vivo" strokeWidth={8} /></h1>
             {current ? <LiveDot /> : null}
           </div>
           <p className="mt-1 text-sm text-zinc-500">

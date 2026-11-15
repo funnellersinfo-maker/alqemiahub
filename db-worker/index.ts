@@ -159,6 +159,45 @@ CREATE INDEX IF NOT EXISTS "InviteCode_email_idx" ON "InviteCode"("email");
 CREATE INDEX IF NOT EXISTS "InviteCode_createdAt_idx" ON "InviteCode"("createdAt");
 `
 
+// v4 — PERFIL PÚBLICO + ORÁCULO CON CONVERSACIONES + REPORTE DE RESULTADOS.
+// Idempotente: CREATE IF NOT EXISTS + ALTER con try/catch + UPDATE condicional.
+const MIGRATION_V4_SQL = `
+CREATE TABLE IF NOT EXISTS "Conversation" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "Conversation_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+CREATE INDEX IF NOT EXISTS "Conversation_userId_updatedAt_idx" ON "Conversation"("userId", "updatedAt");
+`
+
+// v4 — Reconstrucción de ChatMessage con conversaciones e imágenes.
+// Se ejecuta SOLO sobre tablas viejas (sin columna conversationId) y
+// conserva todos los mensajes existentes.
+const MIGRATION_V4_CHAT_SQL = `
+CREATE TABLE "ChatMessage_v4" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "conversationId" TEXT,
+    "role" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "kind" TEXT NOT NULL DEFAULT 'text',
+    "imagePrompt" TEXT,
+    "imageSize" TEXT,
+    "imageData" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "ChatMessage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "ChatMessage_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "Conversation" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+INSERT INTO "ChatMessage_v4" ("id","userId","conversationId","role","content","kind","imagePrompt","imageSize","imageData","createdAt") SELECT "id","userId",NULL,"role","content",'text',NULL,NULL,NULL,"createdAt" FROM "ChatMessage";
+DROP TABLE "ChatMessage";
+ALTER TABLE "ChatMessage_v4" RENAME TO "ChatMessage";
+CREATE INDEX IF NOT EXISTS "ChatMessage_userId_createdAt_idx" ON "ChatMessage"("userId", "createdAt");
+CREATE INDEX IF NOT EXISTS "ChatMessage_conversationId_createdAt_idx" ON "ChatMessage"("conversationId", "createdAt");
+`
+
 export class HubDB extends DurableObject {
   private initialized = false
 
@@ -207,6 +246,68 @@ export class HubDB extends DurableObject {
     }
     // v3: INVITACIONES (CREATE TABLE IF NOT EXISTS)
     execScript(this.sql, MIGRATION_V3_SQL)
+    // ----------------------------------------------------------
+    // v4: PERFIL PÚBLICO (portada + sello verificado) · ORÁCULO CON
+    // CONVERSACIONES E IMÁGENES · REPORTE DE RESULTADOS EN POSTS
+    // ----------------------------------------------------------
+    execScript(this.sql, MIGRATION_V4_SQL) // Conversation + índice
+    // User: portada pública y chulito azul verificado
+    try {
+      this.sql.exec('ALTER TABLE "User" ADD COLUMN "coverImage" TEXT')
+    } catch {
+      // la columna ya existe
+    }
+    try {
+      this.sql.exec('ALTER TABLE "User" ADD COLUMN "verified" BOOLEAN NOT NULL DEFAULT false')
+    } catch {
+      // la columna ya existe
+    }
+    // El titular lleva el sello azul (los grandes maestres lo obtienen por XP)
+    try {
+      this.sql.exec('UPDATE "User" SET "verified" = 1 WHERE "role" = \'ADMIN\'')
+    } catch {
+      // nada que actualizar
+    }
+    // Post: métricas de resultados (evidencia al publicar, estilo Skool)
+    try {
+      this.sql.exec('ALTER TABLE "Post" ADD COLUMN "metricRevenue" REAL')
+    } catch {
+      // la columna ya existe
+    }
+    try {
+      this.sql.exec('ALTER TABLE "Post" ADD COLUMN "metricOrders" INTEGER')
+    } catch {
+      // la columna ya existe
+    }
+    try {
+      this.sql.exec('ALTER TABLE "Post" ADD COLUMN "metricRoas" REAL')
+    } catch {
+      // la columna ya existe
+    }
+    // ChatMessage: se reconstruye con conversaciones e imágenes.
+    // Solo si aún no tiene la columna conversationId (bases viejas);
+    // los mensajes existentes se conservan intactos.
+    try {
+      const cols = (
+        this.sql.exec('SELECT "name" FROM pragma_table_info("ChatMessage")').toArray() as {
+          name: string
+        }[]
+      ).map((r) => r.name)
+      if (!cols.includes("conversationId")) {
+        execScript(this.sql, MIGRATION_V4_CHAT_SQL)
+      }
+    } catch (e) {
+      console.error("[alqemia-db] migración v4 ChatMessage:", e)
+    }
+    // El titular pasa a llamarse Alejo (solo si conserva el nombre del seed;
+    // si él mismo lo cambió, no se toca)
+    try {
+      this.sql.exec(
+        'UPDATE "User" SET "name" = \'Alejo\', "headline" = \'Titular · ALQEMIA\', "bio" = \'Titular del gremio [a:sol]. Transmuto comunidades en máquinas de vender [a:lapis]. Aquí evolucionamos con evidencia, no con humo [a:cinnabaris].\', "verified" = 1 WHERE "email" = \'admin@alqemia.com\' AND "name" = \'Admin ALQEMIA\''
+      )
+    } catch {
+      // nada que renombrar
+    }
   }
 
   async fetch(req: Request): Promise<Response> {

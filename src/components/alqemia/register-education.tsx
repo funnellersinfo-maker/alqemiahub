@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { SparkleBurst } from "@/components/alqemia/fx/celebration"
 import { cn } from "@/lib/utils"
+import { AlqemiaLetters } from "@/components/alqemia/fx/alqemia-lettering"
 
 const TOTAL_LESSONS = 4
 
@@ -105,8 +106,8 @@ export function RegisterEducation({
                 <KeyRound className="h-5 w-5 text-gold" aria-hidden="true" />
               </span>
               <div>
-                <h2 className="font-display text-lg tracking-tight text-zinc-100">
-                  Tu invitación fue sellada, {firstName}
+                <h2 className="text-lg">
+                  <AlqemiaLetters text={`Tu invitación fue sellada, ${firstName}`} strokeWidth={9} />
                 </h2>
                 <p className="text-xs text-zinc-500">Cuenta forjada · Acceso a punto de desbloquearse</p>
               </div>
@@ -135,7 +136,7 @@ export function RegisterEducation({
                 <Zap className="h-5 w-5 fill-gold text-gold-deep" aria-hidden="true" />
               </span>
               <div>
-                <h2 className="font-display text-lg tracking-tight text-zinc-100">El XP: tu esencia alquímica</h2>
+                <h2 className="text-lg"><AlqemiaLetters text="El XP: tu esencia alquímica" strokeWidth={9} /></h2>
                 <p className="text-xs text-zinc-500">La moneda con la que subes de rango</p>
               </div>
             </div>
@@ -173,7 +174,7 @@ export function RegisterEducation({
                 <Crown className="h-5 w-5 text-gold" aria-hidden="true" />
               </span>
               <div>
-                <h2 className="font-display text-lg tracking-tight text-zinc-100">Los 8 rangos del gremio</h2>
+                <h2 className="text-lg"><AlqemiaLetters text="Los 8 rangos del gremio" strokeWidth={9} /></h2>
                 <p className="text-xs text-zinc-500">Todos empiezan abajo. Nadie se queda ahí.</p>
               </div>
             </div>
@@ -231,7 +232,7 @@ export function RegisterEducation({
                 <MapIcon className="h-5 w-5 text-gold" aria-hidden="true" />
               </span>
               <div>
-                <h2 className="font-display text-lg tracking-tight text-zinc-100">El mapa del Hub</h2>
+                <h2 className="text-lg"><AlqemiaLetters text="El mapa del Hub" strokeWidth={9} /></h2>
                 <p className="text-xs text-zinc-500">7 salas. Todas tuyas.</p>
               </div>
             </div>
@@ -262,8 +263,8 @@ export function RegisterEducation({
             <span className="flex h-14 w-14 animate-pulse items-center justify-center rounded-full bg-gold/10 ring-1 ring-gold/40 shadow-[0_0_36px_-8px_rgba(217,164,65,0.7)]">
               <Footprints className="h-7 w-7 text-gold-bright" aria-hidden="true" />
             </span>
-            <h2 className="font-display mt-4 text-lg tracking-tight text-zinc-100">
-              Tu primera misión te espera
+            <h2 className="mt-4 text-lg">
+              <AlqemiaLetters text="Tu primera misión te espera" strokeWidth={9} />
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-zinc-400">
               Al entrar te recibirá el <span className="font-semibold text-gold-bright">Ritual de Iniciación</span>:
@@ -298,9 +299,9 @@ export function RegisterEducation({
                 <KeyRound className="h-11 w-11 text-gold-bright" aria-hidden="true" />
               )}
             </div>
-            <p className="font-display gold-text animate-fade-up mt-6 text-3xl font-bold tracking-[0.18em] [animation-delay:0.15s]">
-              ACCESO CONCEDIDO
-            </p>
+            <div className="animate-fade-up mt-6 text-3xl [animation-delay:0.15s]">
+              <AlqemiaLetters text="ACCESO CONCEDIDO" strokeWidth={8} />
+            </div>
             <p className="animate-fade-up mt-2 text-sm text-zinc-500 [animation-delay:0.3s]">
               Cruzando la puerta dorada, {firstName}...
             </p>

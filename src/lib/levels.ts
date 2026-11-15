@@ -56,6 +56,7 @@ export const ACHIEVEMENTS: Record<string, { label: string; icon: string }> = {
   mapa_descifrado: { label: "Mapa Descifrado", icon: "Map" },
   primer_post: { label: "Primera Transmutación", icon: "FlaskConical" },
   tres_posts: { label: "Voz de la Comunidad", icon: "Megaphone" },
+  primer_reporte: { label: "Primera Evidencia", icon: "FileBarChart" },
   primer_comentario: { label: "Conversador Nato", icon: "MessageCircle" },
   primera_leccion: { label: "Primer Paso", icon: "Footprints" },
   cinco_lecciones: { label: "Estudiante Dedicado", icon: "BookOpen" },

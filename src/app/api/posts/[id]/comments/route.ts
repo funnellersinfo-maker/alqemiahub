@@ -3,6 +3,7 @@ import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { requireActiveUser, errorResponse, handleApiError } from "@/lib/api-helpers"
 import { awardXpFor } from "@/lib/gamification"
+import { isVerifiedUser } from "@/lib/verified"
 import type { FeedComment, XpEvent } from "@/lib/types"
 
 export async function GET(
@@ -30,6 +31,7 @@ export async function GET(
         avatarColor: c.user.avatarColor,
         headline: c.user.headline,
         xp: c.user.xp,
+        verified: isVerifiedUser(c.user),
       },
     }))
 
@@ -73,6 +75,7 @@ export async function POST(
         avatarColor: user.avatarColor,
         headline: user.headline,
         xp: xp?.totalXp ?? user.xp,
+        verified: isVerifiedUser(user),
       },
     }
 

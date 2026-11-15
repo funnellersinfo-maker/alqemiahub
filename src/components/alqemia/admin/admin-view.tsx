@@ -64,6 +64,7 @@ import { EmptyState } from "@/components/alqemia/empty-state"
 import { UserAvatar } from "@/components/alqemia/avatar"
 import { InvitesManager } from "@/components/alqemia/admin/invites-manager"
 import { LiveManager } from "@/components/alqemia/admin/live-manager"
+import { AlqemiaLetters } from "@/components/alqemia/fx/alqemia-lettering"
 
 // ============================================================
 // Fetch autenticado con clave de admin (localStorage)
@@ -732,8 +733,8 @@ export function AdminView() {
           <ShieldCheck className="h-5 w-5 text-gold" aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="font-display text-xl font-semibold leading-tight text-zinc-100 sm:text-2xl">
-            Panel de Administración
+          <h1 className="text-xl leading-tight sm:text-2xl">
+            <AlqemiaLetters text="Panel de Administración" strokeWidth={9} />
           </h1>
           <p className="text-sm text-zinc-500">Control y métricas del Hub ALQEMIA</p>
         </div>

@@ -5,6 +5,7 @@
 
 import type { Prisma } from "@prisma/client"
 import type { FeedPost } from "@/lib/types"
+import { isVerifiedUser } from "@/lib/verified"
 
 /** Include estándar del muro: autor, contadores y likes (solo userId) */
 export const feedInclude = {
@@ -30,10 +31,15 @@ export function toFeedPost(post: FeedPostWithInclude, sessionUserId: string | nu
       avatarColor: post.user.avatarColor,
       headline: post.user.headline,
       xp: post.user.xp,
+      verified: isVerifiedUser(post.user),
     },
     likeCount: post._count.likes,
     likedByMe: post.likes.some((l) => l.userId === sessionUserId),
     commentCount: post._count.comments,
     isOwn: post.user.id === sessionUserId,
+    // Evidencia pública del avance real (reportada al publicar)
+    metricRevenue: post.metricRevenue ?? null,
+    metricOrders: post.metricOrders ?? null,
+    metricRoas: post.metricRoas ?? null,
   }
 }

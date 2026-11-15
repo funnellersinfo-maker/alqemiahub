@@ -169,6 +169,41 @@
   color: var(--gold-bright);
 }
 
+/* ---- Letra ALQEMIA (letrero propio en SVG) ----
+   Se dimensiona por el font-size del contexto: altura ≈ 1em. */
+.alq-letters {
+  height: 0.98em;
+  width: auto;
+  max-width: 100%;
+  vertical-align: -0.14em;
+  display: inline-block;
+  overflow: visible;
+}
+/* Origen de transformaciones por glifo (para la entrada cinética) */
+.alq-glyph {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+/* Halo dorado sutil del wordmark */
+.alq-glow {
+  filter: drop-shadow(0 2px 10px rgba(212, 175, 55, 0.25));
+}
+/* Barrido de brillo periódico sobre el oro (solo sobre los trazos) */
+.alq-sheen-rect {
+  transform-box: fill-box;
+  animation: alq-sheen 5.6s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+}
+@keyframes alq-sheen {
+  0%,
+  58% {
+    transform: translateX(-102%);
+  }
+  92%,
+  100% {
+    transform: translateX(102%);
+  }
+}
+
 /* Borde dorado sutil para tarjetas destacadas */
 .gold-border {
   border-image: linear-gradient(135deg, #8c5a1e55, #d9a44155, #f7d97a33) 1;

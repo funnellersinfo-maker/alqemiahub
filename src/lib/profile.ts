@@ -36,7 +36,19 @@ export function isExperienceValue(v: unknown): v is ExperienceValue {
 }
 
 /**
- * Completitud del perfil (0–100). Cada pieza del ritual vale 20%:
+ * Regla del chulito azul: está verificado el titular de la cuenta
+ * (flag manual), cualquier ADMIN y todo Gran Maestre (nivel 7,
+ * 2400+ XP). Único punto donde se define esta regla.
+ */
+export function isVerifiedUser(user: {
+  verified?: boolean | null
+  role?: string | null
+  xp?: number | null
+}): boolean {
+  return user.verified === true || user.role === "ADMIN" || (user.xp ?? 0) >= 2400
+}
+
+/** Completitud del perfil (0–100). Cada pieza del ritual vale 20%:
  * avatar (color o foto), especialidades (headline), objetivos (goal),
  * nivel del quiz (experience) y bio.
  */

@@ -28,6 +28,7 @@ import { PricingCalculator } from "@/components/alqemia/tools/pricing-calculator
 import { WhalinkTool } from "@/components/alqemia/tools/whalink-tool"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { AlqemiaLetters } from "@/components/alqemia/fx/alqemia-lettering"
 
 type CategoryKey = "copy" | "strategy" | "contact"
 
@@ -140,8 +141,11 @@ function Welcome({ onOpen }: { onOpen: (key: CategoryKey) => void }) {
             <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-gold/70">
               Bienvenido a
             </p>
-            <h1 className="font-display mt-1 text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">
-              El Arsenal de <span className="text-gold-bright">ALQEMIA</span>
+            <h1 className="mt-1 text-2xl leading-tight sm:text-4xl">
+              <AlqemiaLetters text="El Arsenal" strokeWidth={8} />
+              <span className="block sm:mt-1">
+                <AlqemiaLetters text="de ALQEMIA" strokeWidth={8} />
+              </span>
             </h1>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-zinc-400">
               Tus instrumentos de transmutación: copys de élite, números claros y
@@ -229,8 +233,8 @@ function CategoryView({
           <Icon className="h-6 w-6 text-gold-bright" aria-hidden />
         </span>
         <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-100">
-            {category.title}
+          <h1 className="text-2xl text-zinc-100">
+            <AlqemiaLetters text={category.title} strokeWidth={8} />
           </h1>
           <p className="mt-0.5 text-sm text-zinc-500">{category.desc}</p>
         </div>

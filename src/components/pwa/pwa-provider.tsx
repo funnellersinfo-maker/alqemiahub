@@ -12,6 +12,7 @@ import { useEffect, useState } from "react"
 import { Download, Share, Smartphone, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { AlqemiaLetters } from "@/components/alqemia/fx/alqemia-lettering"
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>
@@ -102,7 +103,7 @@ export function PwaProvider() {
             <Smartphone className="h-5 w-5 text-gold-bright" aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-zinc-100">Instala ALQEMIA en tu iPhone</p>
+            <p className="text-sm font-semibold text-zinc-100">Instala <AlqemiaLetters text="ALQEMIA" strokeWidth={14} /> en tu iPhone</p>
             <ol className="mt-1.5 space-y-1 text-xs leading-relaxed text-zinc-400">
               <li>
                 1. Toca el ícono <strong className="text-zinc-200">Compartir</strong>{" "}
@@ -112,7 +113,7 @@ export function PwaProvider() {
                 2. Elige <strong className="text-zinc-200">"Añadir a pantalla de inicio"</strong>
               </li>
               <li>
-                3. Confirma y ALQEMIA quedará como app con su ícono dorado
+                3. Confirma y <AlqemiaLetters text="ALQEMIA" strokeWidth={14} /> quedará como app con su ícono dorado
               </li>
             </ol>
           </div>
@@ -148,7 +149,7 @@ export function PwaProvider() {
             aria-hidden
           />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-zinc-100">Instala la app de ALQEMIA</p>
+            <p className="text-sm font-semibold text-zinc-100">Instala la app de <AlqemiaLetters text="ALQEMIA" strokeWidth={14} /></p>
             <p className="mt-0.5 text-balance text-xs leading-snug text-zinc-400">
               En tu pantalla de inicio o escritorio, como una app real.
             </p>

@@ -32,6 +32,9 @@ interface AppState {
   setAdminUnlocked: (unlocked: boolean) => void
   adminGateOpen: boolean
   setAdminGateOpen: (open: boolean) => void
+  /** Conversación activa de El Oráculo (null → hilo nuevo). Se persiste aparte en localStorage por usuario. */
+  oracleConversationId: string | null
+  setOracleConversationId: (id: string | null) => void
   xpToasts: XpToastItem[]
   pushXpToast: (item: Omit<XpToastItem, "id">) => void
   dismissXpToast: (id: number) => void
@@ -45,13 +48,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAdminUnlocked: (adminUnlocked) => set({ adminUnlocked }),
   adminGateOpen: false,
   setAdminGateOpen: (adminGateOpen) => set({ adminGateOpen }),
+  oracleConversationId: null,
+  setOracleConversationId: (oracleConversationId) => set({ oracleConversationId }),
   xpToasts: [],
   pushXpToast: (item) => {
     const id = ++toastCounter
     set({ xpToasts: [...get().xpToasts, { ...item, id }] })
   },
   dismissXpToast: (id) => set({ xpToasts: get().xpToasts.filter((t) => t.id !== id) }),
-  reset: () => set({ view: "feed", adminUnlocked: false, adminGateOpen: false, xpToasts: [] }),
+  reset: () =>
+    set({ view: "feed", adminUnlocked: false, adminGateOpen: false, oracleConversationId: null, xpToasts: [] }),
 }))
 
 /**

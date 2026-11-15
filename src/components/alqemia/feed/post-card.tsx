@@ -2,7 +2,17 @@
 
 import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Heart, Loader2, MessageCircle, MoreHorizontal, Trash2 } from "lucide-react"
+import {
+  BadgeCheck,
+  DollarSign,
+  Heart,
+  Loader2,
+  MessageCircle,
+  MoreHorizontal,
+  Package,
+  Trash2,
+  TrendingUp,
+} from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -34,6 +44,20 @@ import type { FeedPost, FeedResponse } from "@/lib/types"
 // Representación local del InfiniteData del feed (evita importar tipos de RQ)
 type FeedPages = { pages: FeedResponse[]; pageParams: unknown[] }
 type LikeResponse = { liked: boolean; likeCount: number }
+
+// Formato compacto es-ES para las cifras de facturación (ej. 12,3 mil)
+const compactFmt = new Intl.NumberFormat("es", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+})
+
+const CHIP_CLASS =
+  "inline-flex items-center gap-1 rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[11px] font-semibold text-gold-bright"
+
+/** Abre el perfil público del miembro (el app-shell escucha este evento). */
+function openProfile(userId: string) {
+  window.dispatchEvent(new CustomEvent("alqemia:open-profile", { detail: userId }))
+}
 
 export function PostCard({ post }: { post: FeedPost }) {
   const queryClient = useQueryClient()
@@ -111,16 +135,37 @@ export function PostCard({ post }: { post: FeedPost }) {
     ? `${post.user.headline} · ${timeAgo(post.createdAt)}`
     : timeAgo(post.createdAt)
 
+  const hasMetrics =
+    post.metricRevenue !== null || post.metricOrders !== null || post.metricRoas !== null
+
   return (
     <Card className="hover-lift gap-0 overflow-hidden rounded-2xl border-zinc-800 bg-zinc-950 p-4 sm:p-5">
       <article>
         <div className="flex items-start gap-3">
-          <UserAvatar user={post.user} size="md" />
+          <button
+            type="button"
+            onClick={() => openProfile(post.user.id)}
+            aria-label={`Ver perfil de ${post.user.name}`}
+            className="shrink-0 cursor-pointer rounded-full transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50"
+          >
+            <UserAvatar user={post.user} size="md" />
+          </button>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="truncate font-semibold text-[15px] text-zinc-100">
+              <button
+                type="button"
+                onClick={() => openProfile(post.user.id)}
+                aria-label={`Ver perfil de ${post.user.name}`}
+                className="cursor-pointer truncate rounded-sm text-left font-semibold text-[15px] text-zinc-100 transition-colors hover:text-gold-bright focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40"
+              >
                 {post.user.name}
-              </span>
+              </button>
+              {post.user.verified && (
+                <BadgeCheck
+                  className="h-3.5 w-3.5 shrink-0 fill-sky-400 text-zinc-950"
+                  aria-label="Cuenta verificada"
+                />
+              )}
               <LevelBadge level={getLevelInfo(post.user.xp)} className="shrink-0" />
             </div>
             <p className="mt-0.5 text-xs text-zinc-500">{meta}</p>
@@ -160,6 +205,38 @@ export function PostCard({ post }: { post: FeedPost }) {
               alt="Imagen de la publicación"
               className="max-h-[480px] w-full object-cover"
             />
+          </div>
+        )}
+
+        {hasMetrics && (
+          <div className="mt-3">
+            <div className="flex items-center gap-2" aria-hidden>
+              <span className="text-[9px] font-semibold tracking-[0.2em] text-gold/60">
+                EVIDENCIA
+              </span>
+              <span className="h-px flex-1 bg-gold/20" />
+            </div>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {post.metricRevenue !== null && (
+                <span className={CHIP_CLASS} title="Facturación reportada">
+                  <DollarSign className="h-3 w-3" aria-hidden />
+                  {"+"}
+                  {compactFmt.format(post.metricRevenue)}
+                </span>
+              )}
+              {post.metricOrders !== null && (
+                <span className={CHIP_CLASS} title="Pedidos reportados">
+                  <Package className="h-3 w-3" aria-hidden />
+                  {post.metricOrders} pedidos
+                </span>
+              )}
+              {post.metricRoas !== null && (
+                <span className={CHIP_CLASS} title="Retorno sobre inversión publicitaria">
+                  <TrendingUp className="h-3 w-3" aria-hidden />
+                  ROAS x{post.metricRoas.toFixed(1)}
+                </span>
+              )}
+            </div>
           </div>
         )}
 

@@ -3,14 +3,17 @@
 import { useEffect, useRef, useState } from "react"
 import type { ChangeEvent, FormEvent } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { Camera, Loader2 } from "lucide-react"
+import { Camera, ImagePlus, Loader2, Sparkles, X } from "lucide-react"
 import { toast } from "sonner"
 
 import type { ApiErrorShape } from "@/lib/types"
 import { useMe } from "@/hooks/use-me"
 import { EXPERIENCE_OPTIONS } from "@/lib/profile"
+import { compressImage } from "@/lib/image-utils"
 import { cn } from "@/lib/utils"
 import { AVATAR_COLORS, UserAvatar } from "@/components/alqemia/avatar"
+import { AlqEmoji, AlqEmojiPicker, ALQ_EMOJI_MAP, AlqText } from "@/components/alqemia/alq-emoji"
+import { AlqemiaLetters } from "@/components/alqemia/fx/alqemia-lettering"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -22,9 +25,15 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Textarea } from "@/components/ui/textarea"
 
-/** Recorta la imagen al centro (256x256) y la comprime a dataURL JPEG. */
+/** Límite del API para la portada (dataURL, ~400KB) con margen */
+const COVER_MAX_CHARS = 400_000
+const COVER_SAFE_CHARS = 380_000
+const BIO_MAX = 500
+
+/** Recorta la imagen del avatar al centro (256x256) y la comprime a dataURL JPEG. */
 function processImageFile(file: File): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
@@ -56,6 +65,42 @@ function processImageFile(file: File): Promise<string> {
   })
 }
 
+/**
+ * Portada 16:9 (1280×720 JPEG q0.82). Si el resultado excede el
+ * límite del API se recomprime con menos calidad/ancho (como el avatar).
+ */
+async function processCoverFile(file: File): Promise<string> {
+  const passes: { maxWidth: number; quality: number }[] = [
+    { maxWidth: 1280, quality: 0.82 },
+    { maxWidth: 1280, quality: 0.6 },
+    { maxWidth: 1024, quality: 0.5 },
+    { maxWidth: 900, quality: 0.42 },
+  ]
+  let out = ""
+  for (const pass of passes) {
+    out = await compressImage(file, {
+      maxWidth: pass.maxWidth,
+      aspect: 16 / 9,
+      quality: pass.quality,
+    })
+    if (out.length <= COVER_SAFE_CHARS) return out
+  }
+  if (out.length > COVER_MAX_CHARS) {
+    throw new Error("La portada sigue siendo demasiado grande tras comprimirla. Prueba con una imagen más ligera.")
+  }
+  return out
+}
+
+/** ¿La bio usa un token [a:xxx] que no existe en el catálogo del gremio? */
+function hasInvalidAlqToken(text: string): boolean {
+  const re = /\[a:([a-z]+)\]/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(text)) !== null) {
+    if (!ALQ_EMOJI_MAP[m[1]]) return true
+  }
+  return false
+}
+
 export function EditProfileDialog({
   open,
   onOpenChange,
@@ -67,6 +112,8 @@ export function EditProfileDialog({
   const user = data?.user
   const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const coverInputRef = useRef<HTMLInputElement>(null)
+  const bioRef = useRef<HTMLTextAreaElement>(null)
 
   const [name, setName] = useState("")
   const [headline, setHeadline] = useState("")
@@ -75,6 +122,9 @@ export function EditProfileDialog({
   const [experience, setExperience] = useState("")
   const [imageDataURL, setImageDataURL] = useState<string | null>(null)
   const [avatarColor, setAvatarColor] = useState<string>(AVATAR_COLORS[0])
+  const [cover, setCover] = useState<string | null>(null)
+  const [coverTouched, setCoverTouched] = useState(false)
+  const [emojiOpen, setEmojiOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
   // Valores iniciales cada vez que se abre el diálogo
@@ -87,6 +137,9 @@ export function EditProfileDialog({
       setExperience(user.experience ?? "")
       setImageDataURL(user.image)
       setAvatarColor(user.avatarColor ?? AVATAR_COLORS[0])
+      setCover(user.coverImage ?? null)
+      setCoverTouched(false)
+      setEmojiOpen(false)
       setSaving(false)
     }
   }, [open, user])
@@ -105,15 +158,65 @@ export function EditProfileDialog({
       setImageDataURL(out)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "No se pudo cargar la imagen")
+    } finally {
+      e.target.value = ""
     }
+  }
+
+  async function handleCoverChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const out = await processCoverFile(file)
+      setCover(out)
+      setCoverTouched(true)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudo cargar la portada")
+    } finally {
+      e.target.value = ""
+    }
+  }
+
+  function removeCover() {
+    setCover(null)
+    setCoverTouched(true)
+  }
+
+  /** Inserta el token del emoji alquímico en la posición del cursor */
+  function insertAlqEmoji(token: string) {
+    const tokenStr = `[a:${token}]`
+    const el = bioRef.current
+    if (!el) {
+      if (bio.length + tokenStr.length <= BIO_MAX) setBio((b) => b + tokenStr)
+      return
+    }
+    const start = el.selectionStart ?? bio.length
+    const end = el.selectionEnd ?? bio.length
+    const next = bio.slice(0, start) + tokenStr + bio.slice(end)
+    if (next.length > BIO_MAX) {
+      toast.error(`La bio admite máximo ${BIO_MAX} caracteres`)
+      return
+    }
+    setBio(next)
+    requestAnimationFrame(() => {
+      el.focus()
+      const pos = start + tokenStr.length
+      el.setSelectionRange(pos, pos)
+    })
   }
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!user || saving) return
+
+    if (hasInvalidAlqToken(bio)) {
+      toast.error("La bio usa un símbolo del gremio que no existe. Elígelos con el botón de emojis.")
+      return
+    }
+
     setSaving(true)
     try {
-      const body: Record<string, string> = {
+      const body: Record<string, string | null> = {
         name: name.trim(),
         headline: headline.trim() || "",
         bio: bio.trim(),
@@ -132,6 +235,8 @@ export function EditProfileDialog({
       if (!imageDataURL) {
         body.avatarColor = avatarColor
       }
+      // Portada: solo cuando el usuario la cambió (nueva foto o quitada)
+      if (coverTouched) body.coverImage = cover
 
       const res = await fetch("/api/me", {
         method: "PATCH",
@@ -143,6 +248,12 @@ export function EditProfileDialog({
         throw new Error(json.error ?? "No se pudo actualizar el perfil")
       }
       await queryClient.invalidateQueries({ queryKey: ["me"] })
+      if (coverTouched) {
+        // Refresca el perfil público propio (portada) donde esté montado
+        await queryClient.invalidateQueries({
+          queryKey: ["public-user", user.id],
+        })
+      }
       toast.success("Perfil actualizado")
       onOpenChange(false)
     } catch (err) {
@@ -154,13 +265,61 @@ export function EditProfileDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md sm:max-w-md">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto max-w-md sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Editar perfil</DialogTitle>
           <DialogDescription>Así te ve la comunidad.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="space-y-4">
+          {/* Portada 16:9 */}
+          <div className="space-y-2">
+            <Label>Portada</Label>
+            <div className="relative aspect-video max-h-32 w-full overflow-hidden rounded-xl border border-zinc-800 bg-gradient-to-b from-zinc-900 to-zinc-950">
+              {cover ? (
+                <img
+                  src={cover}
+                  alt="Vista previa de la portada"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div aria-hidden className="absolute inset-0">
+                  <AlqEmoji token="sol" className="absolute left-3 top-2 h-3.5 w-3.5 text-gold/20" />
+                  <AlqEmoji token="luna" className="absolute right-4 top-3 h-3 w-3 text-gold/15" />
+                  <AlqEmoji token="azoth" className="absolute bottom-2 right-8 h-3.5 w-3.5 text-gold/15" />
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <AlqemiaLetters text="ALQEMIA" tone="mono" className="text-xl text-gold/15" />
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-zinc-700 px-3 py-2 text-xs font-medium text-zinc-400 transition hover:border-gold hover:text-gold">
+                <ImagePlus className="h-4 w-4" aria-hidden />
+                Cambiar portada
+                <input
+                  ref={coverInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleCoverChange}
+                />
+              </label>
+              {cover ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                  onClick={removeCover}
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden />
+                  Quitar
+                </Button>
+              ) : null}
+            </div>
+          </div>
+
           {/* Selector de avatar */}
           <div className="flex flex-col items-center gap-3">
             <UserAvatar
@@ -262,14 +421,65 @@ export function EditProfileDialog({
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="edit-bio">Sobre mí</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="edit-bio">Sobre mí</Label>
+                <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 gap-1.5 px-2 text-[11px] text-gold hover:text-gold-bright"
+                    >
+                      <Sparkles className="h-3.5 w-3.5" aria-hidden />
+                      Emojis del gremio
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-72 p-2.5">
+                    <p className="mb-2 px-0.5 text-[11px] font-medium text-zinc-400">
+                      Símbolos alquímicos para tu bio
+                    </p>
+                    <AlqEmojiPicker
+                      onPick={(token) => {
+                        insertAlqEmoji(token)
+                        setEmojiOpen(false)
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
               <Textarea
                 id="edit-bio"
+                ref={bioRef}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 rows={3}
-                maxLength={500}
+                maxLength={BIO_MAX}
+                placeholder="Cuéntale al gremio quién eres y qué transmutas"
               />
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] text-zinc-600">
+                  Los símbolos se insertan en la posición del cursor
+                </p>
+                <p
+                  className={cn(
+                    "text-[10px] tabular-nums",
+                    bio.length >= BIO_MAX ? "text-gold-bright" : "text-zinc-500"
+                  )}
+                >
+                  {bio.length}/{BIO_MAX}
+                </p>
+              </div>
+              {bio.trim() ? (
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-2.5">
+                  <p className="text-[10px] uppercase tracking-wide text-zinc-500">
+                    Vista previa
+                  </p>
+                  <p className="mt-1 text-sm leading-relaxed text-zinc-400">
+                    <AlqText text={bio} className="whitespace-pre-wrap" />
+                  </p>
+                </div>
+              ) : null}
             </div>
           </div>
 

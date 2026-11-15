@@ -17,9 +17,17 @@ export const XP_REWARDS = {
   profile: 100,
   courseBonus: 50,
   tour: 25,
+  report: 25,
 } as const
 
-export type XpAction = "post" | "comment" | "lesson" | "profile" | "courseBonus" | "tour"
+export type XpAction =
+  | "post"
+  | "comment"
+  | "lesson"
+  | "profile"
+  | "courseBonus"
+  | "tour"
+  | "report"
 
 export async function grantAchievement(userId: string, code: string): Promise<XpAchievement | null> {
   if (!ACHIEVEMENTS[code]) return null
@@ -81,6 +89,19 @@ export async function awardXpFor(
     achievement = await grantAchievement(userId, "perfil_completo")
   } else if (action === "tour") {
     achievement = await grantAchievement(userId, "mapa_descifrado")
+  } else if (action === "report") {
+    // Evidencia pública: primer post con métricas de resultados → logro
+    const reports = await db.post.count({
+      where: {
+        userId,
+        OR: [
+          { metricRevenue: { not: null } },
+          { metricOrders: { not: null } },
+          { metricRoas: { not: null } },
+        ],
+      },
+    })
+    if (reports >= 1) achievement = await grantAchievement(userId, "primer_reporte")
   }
 
   const updated = await db.user.update({

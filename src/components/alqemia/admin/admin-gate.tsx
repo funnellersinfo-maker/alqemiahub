@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { AlqemiaLetters } from "@/components/alqemia/fx/alqemia-lettering"
 
 export function AdminGate() {
   const adminGateOpen = useAppStore((s) => s.adminGateOpen)
@@ -69,7 +70,7 @@ export function AdminGate() {
           <KeyRound className="h-6 w-6 text-gold" aria-hidden />
         </div>
 
-        <DialogTitle className="text-center font-display">Panel de Administración</DialogTitle>
+        <DialogTitle className="text-center text-xl"><AlqemiaLetters text="Panel de Administración" strokeWidth={9} /></DialogTitle>
         <DialogDescription className="text-center text-zinc-400">
           Acceso exclusivo del equipo ALQEMIA. Ingresa tu clave de acceso.
         </DialogDescription>

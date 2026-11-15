@@ -8,7 +8,7 @@
 // hay una transmisión activa.
 // ============================================================
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { signOut } from "next-auth/react"
 import { useQuery } from "@tanstack/react-query"
 import {
@@ -27,6 +27,7 @@ import {
   Zap,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { AlqemiaMark, AlqemiaLetters } from "@/components/alqemia/fx/alqemia-lettering"
 import { useAppStore, type AppView } from "@/lib/store"
 import { useMe } from "@/hooks/use-me"
 import { UserAvatar } from "@/components/alqemia/avatar"
@@ -57,15 +58,7 @@ const NAV: { key: NavKey; label: string; shortLabel: string; icon: typeof Home }
 ]
 
 function Logo({ className }: { className?: string }) {
-  return (
-     
-    <img
-      src="/images/logo-mark.png"
-      alt="ALQEMIA"
-      className={cn("h-9 w-9 rounded-lg object-cover", className)}
-      draggable={false}
-    />
-  )
+  return <AlqemiaMark className={cn("h-9 w-9 drop-shadow-[0_2px_10px_rgba(212,175,55,0.3)]", className)} />
 }
 
 function handleLogout() {
@@ -124,9 +117,27 @@ export function AppShell() {
   const adminUnlocked = useAppStore((s) => s.adminUnlocked)
   const setAdminGateOpen = useAppStore((s) => s.setAdminGateOpen)
   const [menuOpen, setMenuOpen] = useState(false)
+  // Perfil público abierto (null → perfil propio en la vista Perfil)
+  const [publicUserId, setPublicUserId] = useState<string | null>(null)
   const { data } = useMe()
   const user = data?.user
   const level = user?.level
+
+  // Contrato global: cualquier componente puede pedir abrir el perfil
+  // público de un miembro con window.dispatchEvent(
+  //   new CustomEvent("alqemia:open-profile", { detail: userId })
+  // )
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<string>).detail
+      if (typeof detail === "string" && detail) {
+        setPublicUserId(detail)
+        setView("profile")
+      }
+    }
+    window.addEventListener("alqemia:open-profile", handler)
+    return () => window.removeEventListener("alqemia:open-profile", handler)
+  }, [setView])
 
   // ¿Hay transmisión EN VIVO? (polling ligero: 25s)
   const { data: liveStatus } = useQuery<{ isLive: boolean }>({
@@ -143,12 +154,19 @@ export function AppShell() {
 
   const openTuerca = () => {
     // El titular (rol ADMIN) entra directo; el resto necesita la clave
-    if (adminUnlocked || user?.role === "ADMIN") setView("admin")
-    else setAdminGateOpen(true)
+    if (adminUnlocked || user?.role === "ADMIN") {
+      setPublicUserId(null)
+      setView("admin")
+    } else {
+      setAdminGateOpen(true)
+    }
   }
 
+  // Navegar siempre resetea el perfil público: los accesos directos
+  // al Perfil (tab, sidebar, avatar) muestran el perfil PROPIO.
   const go = (key: AppView) => {
     setView(key)
+    setPublicUserId(null)
     setMenuOpen(false)
   }
 
@@ -162,8 +180,8 @@ export function AppShell() {
         <div className="flex items-center gap-3 p-5">
           <Logo />
           <div className="min-w-0">
-            <p className="brand-wordmark pl-[0.38em] text-[13px] leading-tight">ALQEMIA</p>
-            <p className="mt-0.5 text-[9px] font-medium tracking-[0.22em] text-gold/70">MARKETING · ECOMMERCE</p>
+            <AlqemiaLetters text="ALQEMIA" strokeWidth={13} className="text-[15px] leading-tight" shine />
+            <p className="mt-1 text-[9px] font-medium tracking-[0.22em] text-gold/70">MARKETING · ECOMMERCE</p>
           </div>
         </div>
 
@@ -174,7 +192,7 @@ export function AppShell() {
               <button
                 key={key}
                 data-tour={key}
-                onClick={() => setView(key)}
+                onClick={() => go(key)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
@@ -232,7 +250,7 @@ export function AppShell() {
           {user && (
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setView("profile")}
+                onClick={() => go("profile")}
                 className="flex min-w-0 flex-1 items-center gap-3 rounded-xl p-2 transition-colors hover:bg-zinc-900"
               >
                 <UserAvatar user={user} size="sm" />
@@ -261,12 +279,12 @@ export function AppShell() {
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-zinc-800 bg-zinc-950/85 px-4 backdrop-blur-md lg:hidden">
         <div className="flex items-center gap-2.5">
           <Logo className="h-8 w-8" />
-          <p className="brand-wordmark pl-[0.38em] text-[11px]">ALQEMIA</p>
+          <AlqemiaLetters text="ALQEMIA" strokeWidth={14} className="text-[13px]" shine />
         </div>
         <div className="flex items-center gap-3">
           {user && level && (
             <button
-              onClick={() => setView("profile")}
+              onClick={() => go("profile")}
               className="flex items-center gap-1.5 rounded-full bg-zinc-950 px-2.5 py-1 text-xs font-semibold text-gold-bright transition-transform active:scale-95"
               aria-label={`${level.currentXp} XP · Nivel ${level.level}`}
             >
@@ -277,7 +295,7 @@ export function AppShell() {
             </button>
           )}
           {user && (
-            <button onClick={() => setView("profile")} aria-label="Ir a mi perfil">
+            <button onClick={() => go("profile")} aria-label="Ir a mi perfil">
               <UserAvatar user={user} size="sm" />
             </button>
           )}
@@ -303,7 +321,12 @@ export function AppShell() {
             {view === "market" && <MarketplaceView />}
             {view === "tools" && <ToolsView />}
             {view === "ai" && <AiChatView />}
-            {view === "profile" && <ProfileView />}
+            {view === "profile" && (
+              <ProfileView
+                userId={publicUserId ?? undefined}
+                onBack={publicUserId ? () => setPublicUserId(null) : undefined}
+              />
+            )}
             {view === "admin" && <AdminView />}
           </div>
         </main>
@@ -320,7 +343,7 @@ export function AppShell() {
             <button
               key={key}
               data-tour={key}
-              onClick={() => setView(key)}
+              onClick={() => go(key)}
               aria-current={active ? "page" : undefined}
               className={cn(
                 "relative flex min-w-[14.28%] shrink-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-[9px] font-medium transition-colors",
@@ -363,7 +386,9 @@ export function AppShell() {
             <div className="flex items-center gap-3">
               <Logo />
               <div className="min-w-0">
-                <SheetTitle className="brand-wordmark pl-[0.38em] text-[13px] leading-tight">ALQEMIA</SheetTitle>
+                <SheetTitle className="leading-tight">
+                  <AlqemiaLetters text="ALQEMIA" strokeWidth={13} className="text-[15px]" shine />
+                </SheetTitle>
                 <SheetDescription className="sr-only">
                   Menú de navegación del Hub: Muro, Classroom, Herramientas, Perfil y Panel de Administración.
                 </SheetDescription>

@@ -25,6 +25,7 @@ import { useMe } from "@/hooks/use-me"
 import { celebrateXp } from "@/lib/store"
 import { EXPERIENCE_OPTIONS, profileCompletion } from "@/lib/profile"
 import { cn } from "@/lib/utils"
+import { AlqemiaMark, AlqemiaLetters } from "@/components/alqemia/fx/alqemia-lettering"
 import type { ApiErrorShape, MeResponse } from "@/lib/types"
 
 const SPECIALTIES = [
@@ -344,14 +345,10 @@ export function OnboardingFlow({ onComplete }: { onComplete?: () => void }) {
 
       {/* Marca */}
       <div className="animate-fade-up relative z-10 flex flex-col items-center text-center">
-        <img
-          src="/images/logo-mark.png"
-          alt="Logotipo de ALQEMIA"
-          className="h-10 w-10 rounded-xl shadow-[0_0_28px_-4px_rgba(217,164,65,0.5)]"
-        />
-        <span className="brand-wordmark mt-3 pl-[0.38em] text-sm">ALQEMIA</span>
-        <h1 className="font-display mt-3 text-2xl tracking-tight text-zinc-100 sm:text-3xl">
-          Ritual de Iniciación
+        <AlqemiaMark className="h-10 w-10 drop-shadow-[0_0_28px_rgba(217,164,65,0.5)]" />
+        <AlqemiaLetters text="ALQEMIA" strokeWidth={14} className="mt-3 text-base" shine />
+        <h1 className="mt-3 text-2xl sm:text-3xl">
+          <AlqemiaLetters text="Ritual de Iniciación" strokeWidth={8} />
         </h1>
         <p className="mt-2 text-sm text-zinc-500">
           5 preguntas para transmutar tu perfil y desbloquear +100 XP

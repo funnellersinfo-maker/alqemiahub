@@ -2,7 +2,7 @@ import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { requireUser, errorResponse, handleApiError } from "@/lib/api-helpers"
 import { awardXpFor, ACHIEVEMENTS, getLevelInfo } from "@/lib/gamification"
-import { isExperienceValue } from "@/lib/profile"
+import { isExperienceValue, isVerifiedUser } from "@/lib/profile"
 import type { MeUser, XpEvent } from "@/lib/types"
 
 async function buildMeUser(userId: string): Promise<MeUser> {
@@ -21,6 +21,8 @@ async function buildMeUser(userId: string): Promise<MeUser> {
     bio: user.bio,
     goal: user.goal,
     experience: user.experience,
+    coverImage: user.coverImage,
+    verified: isVerifiedUser(user),
     xp: user.xp,
     status: user.status === "BLOCKED" ? "BLOCKED" : "ACTIVE",
     profileCompleted: user.profileCompleted,
@@ -53,7 +55,7 @@ export async function PATCH(req: NextRequest) {
     const user = await requireUser()
     const body = await req.json().catch(() => ({}))
 
-    const data: Record<string, string | boolean | null> = {}
+    const data: Record<string, string | boolean | null | Date> = {}
 
     if (typeof body.name === "string") {
       const name = body.name.trim()
@@ -88,6 +90,19 @@ export async function PATCH(req: NextRequest) {
       if (!body.image.startsWith("data:image/")) return errorResponse(400, "Formato de imagen inválido")
       if (body.image.length > 250_000) return errorResponse(400, "La imagen es demasiado grande (máx ~250KB)")
       data.image = body.image
+    }
+    // Portada pública 16:9 (dataURL JPEG) · null o "" la quita
+    if (typeof body.coverImage === "string") {
+      const cover = body.coverImage.trim()
+      if (cover === "") {
+        data.coverImage = null
+      } else {
+        if (!cover.startsWith("data:image/")) return errorResponse(400, "Formato de portada inválido")
+        if (cover.length > 400_000) return errorResponse(400, "La portada es demasiado grande (máx ~400KB)")
+        data.coverImage = cover
+      }
+    } else if (body.coverImage === null) {
+      data.coverImage = null
     }
 
     let xpEvent: XpEvent | null = null

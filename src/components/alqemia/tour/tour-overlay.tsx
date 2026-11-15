@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button"
 import { SparkleBurst } from "@/components/alqemia/fx/celebration"
 import { cn } from "@/lib/utils"
 import type { ApiErrorShape, MeResponse } from "@/lib/types"
+import { AlqemiaLetters } from "@/components/alqemia/fx/alqemia-lettering"
 
 // ----------------------------------------------------------------
 // Las 7 salas del recorrido (mismo orden que el menú del Hub)
@@ -274,8 +275,8 @@ export function TourOverlay({ userName }: { userName: string }) {
             <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gold/10 ring-1 ring-gold/40 shadow-[0_0_36px_-8px_rgba(217,164,65,0.7)]">
               <MapIcon className="h-7 w-7 text-gold-bright" aria-hidden="true" />
             </span>
-            <h2 className="font-display mt-4 text-xl tracking-tight text-zinc-100">
-              Bienvenido al gremio, {firstName}
+            <h2 className="mt-4 text-xl">
+              <AlqemiaLetters text={`Bienvenido al gremio, ${firstName}`} strokeWidth={9} />
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-zinc-400">
               Antes de dejarte libre, recorreremos juntos el{" "}
@@ -309,8 +310,8 @@ export function TourOverlay({ userName }: { userName: string }) {
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gold/10 ring-1 ring-gold/30">
                 <section.icon className="h-5 w-5 text-gold" aria-hidden="true" />
               </span>
-              <h2 className="font-display text-lg leading-tight tracking-tight text-zinc-100">
-                {section.title}
+              <h2 className="text-lg leading-tight">
+                <AlqemiaLetters text={section.title} strokeWidth={9} />
               </h2>
             </div>
             <p className="mt-3 text-sm leading-relaxed text-zinc-400">{section.legend}</p>
@@ -342,9 +343,9 @@ export function TourOverlay({ userName }: { userName: string }) {
                 <div className="animate-portal-in flex h-20 w-20 items-center justify-center rounded-full bg-gold/10 ring-1 ring-gold/40 shadow-[0_0_50px_-6px_rgba(217,164,65,0.7)]">
                   <Crown className="h-10 w-10 text-gold-bright" aria-hidden="true" />
                 </div>
-                <p className="font-display gold-text animate-fade-up mt-5 text-2xl font-bold tracking-[0.15em] [animation-delay:0.1s]">
-                  HUB DESBLOQUEADO
-                </p>
+                <div className="animate-fade-up mt-5 text-2xl [animation-delay:0.1s]">
+                  <AlqemiaLetters text="HUB DESBLOQUEADO" strokeWidth={8} />
+                </div>
                 <p className="animate-fade-up mt-2 text-sm text-zinc-500 [animation-delay:0.25s]">
                   El gremio es todo tuyo, {firstName}.
                 </p>
@@ -354,8 +355,8 @@ export function TourOverlay({ userName }: { userName: string }) {
                 <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gold/10 ring-1 ring-gold/40 shadow-[0_0_36px_-8px_rgba(217,164,65,0.7)]">
                   <Trophy className="h-7 w-7 text-gold-bright" aria-hidden="true" />
                 </span>
-                <h2 className="font-display mt-4 text-xl tracking-tight text-zinc-100">
-                  ¡Mapa descifrado, {firstName}!
+                <h2 className="mt-4 text-xl">
+                  <AlqemiaLetters text={`¡Mapa descifrado, ${firstName}!`} strokeWidth={9} />
                 </h2>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-400">
                   Recorriste las 7 salas del gremio. Reclama tu recompensa y queda libre para

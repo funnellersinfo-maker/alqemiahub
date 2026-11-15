@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/alqemia/empty-state"
 import type { FeedPost, FeedResponse } from "@/lib/types"
+import { AlqemiaLetters } from "@/components/alqemia/fx/alqemia-lettering"
 import { PostCard } from "./post-card"
 import { PostComposer } from "./post-composer"
 
@@ -56,8 +57,8 @@ export function FeedView() {
   return (
     <div className="mx-auto w-full max-w-2xl pb-4">
       <header className="mb-6">
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-100">
-          El Muro
+        <h1 className="text-2xl">
+          <AlqemiaLetters text="El Muro" strokeWidth={8} />
         </h1>
         <p className="mt-1 text-sm text-zinc-500">
           Comparte avances, preguntas y victorias de tu negocio.

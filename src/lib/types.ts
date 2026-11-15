@@ -44,9 +44,11 @@ export type MeUser = {
   image: string | null
   avatarColor: string | null
   headline: string | null
-  bio: string | null
+  bio: string | null // admite emojis alquímicos [a:xxx]
   goal: string | null
   experience: string | null
+  coverImage: string | null // portada pública 16:9
+  verified: boolean // chulito azul (titular y grandes maestres)
   xp: number
   status: UserStatus
   profileCompleted: boolean
@@ -68,6 +70,7 @@ export type PostAuthor = {
   avatarColor: string | null
   headline: string | null
   xp: number
+  verified: boolean
 }
 
 export type FeedPost = {
@@ -80,6 +83,10 @@ export type FeedPost = {
   likedByMe: boolean
   commentCount: number
   isOwn: boolean
+  // Resultados reportados al publicar (evidencia del avance real)
+  metricRevenue: number | null // facturación reportada (USD)
+  metricOrders: number | null // pedidos reportados
+  metricRoas: number | null // rentabilidad reportada (ROAS, ej. 3.2)
 }
 
 export type FeedResponse = {
@@ -128,6 +135,7 @@ export type LeaderboardEntry = {
   headline: string | null
   xp: number
   level: LevelInfo
+  verified: boolean
 }
 
 export type AdminUserRow = {
@@ -331,4 +339,54 @@ export type ChatMsg = {
   role: "user" | "assistant"
   content: string
   createdAt: string
+  conversationId: string | null
+  /** "image" → content lleva el prompt y imageData el PNG base64 (dataURL) */
+  kind: "text" | "image"
+  imagePrompt: string | null
+  imageSize: string | null
+  imageData: string | null
+}
+
+export type ConversationSummary = {
+  id: string
+  title: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type OracleImageResponse = {
+  msg: ChatMsg
+}
+
+// ============================================================
+// PERFIL PÚBLICO
+// ============================================================
+
+/** Métricas de negocio reportadas por un miembro en sus posts */
+export type PublicResults = {
+  reports: number // posts con resultados reportados
+  totalRevenue: number // suma de facturación reportada (USD)
+  totalOrders: number // suma de pedidos reportados
+  avgRoas: number | null // ROAS promedio de los reportes
+  lastReportAt: string | null
+}
+
+export type PublicProfileUser = {
+  id: string
+  name: string
+  image: string | null
+  avatarColor: string | null
+  headline: string | null
+  bio: string | null // admite emojis alquímicos [a:xxx]
+  coverImage: string | null
+  verified: boolean
+  xp: number
+  level: LevelInfo
+  createdAt: string
+  experience: string | null
+  postCount: number
+  commentCount: number
+  achievements: MeAchievement[]
+  results: PublicResults
+  isOwn: boolean
 }

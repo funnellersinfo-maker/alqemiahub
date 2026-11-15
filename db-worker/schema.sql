@@ -13,6 +13,8 @@ CREATE TABLE "User" (
     "bio" TEXT,
     "goal" TEXT,
     "experience" TEXT,
+    "coverImage" TEXT,
+    "verified" BOOLEAN NOT NULL DEFAULT false,
     "profileCompleted" BOOLEAN NOT NULL DEFAULT false,
     "tourCompletedAt" DATETIME,
     "xp" INTEGER NOT NULL DEFAULT 0,
@@ -27,6 +29,9 @@ CREATE TABLE "Post" (
     "userId" TEXT NOT NULL,
     "content" TEXT NOT NULL,
     "image" TEXT,
+    "metricRevenue" REAL,
+    "metricOrders" INTEGER,
+    "metricRoas" REAL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "Post_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
@@ -169,14 +174,30 @@ CREATE TABLE "Sale" (
     CONSTRAINT "Sale_resellerId_fkey" FOREIGN KEY ("resellerId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
--- CreateTable (ASISTENTE IA)
+-- CreateTable (ORÁCULO: conversaciones con historial persistente)
+CREATE TABLE "Conversation" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "Conversation_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable (ASISTENTE IA: mensajes de texto e imágenes)
 CREATE TABLE "ChatMessage" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
+    "conversationId" TEXT,
     "role" TEXT NOT NULL,
     "content" TEXT NOT NULL,
+    "kind" TEXT NOT NULL DEFAULT 'text',
+    "imagePrompt" TEXT,
+    "imageSize" TEXT,
+    "imageData" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "ChatMessage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    CONSTRAINT "ChatMessage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "ChatMessage_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "Conversation" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateIndex
@@ -221,6 +242,8 @@ CREATE INDEX "Sale_resellerId_idx" ON "Sale"("resellerId");
 CREATE INDEX "Sale_productId_idx" ON "Sale"("productId");
 CREATE INDEX "Sale_status_idx" ON "Sale"("status");
 CREATE INDEX "ChatMessage_userId_createdAt_idx" ON "ChatMessage"("userId", "createdAt");
+CREATE INDEX "ChatMessage_conversationId_createdAt_idx" ON "ChatMessage"("conversationId", "createdAt");
+CREATE INDEX "Conversation_userId_updatedAt_idx" ON "Conversation"("userId", "updatedAt");
 
 -- CreateIndex (INVITACIONES)
 CREATE UNIQUE INDEX "InviteCode_code_key" ON "InviteCode"("code");

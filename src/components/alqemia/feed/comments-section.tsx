@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent, type KeyboardEvent } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Loader2 } from "lucide-react"
+import { BadgeCheck, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,11 @@ import type { FeedComment, XpEvent } from "@/lib/types"
 
 type CommentsResponse = { comments: FeedComment[] }
 type CreateCommentResponse = { comment?: FeedComment; xp?: XpEvent; error?: string }
+
+/** Abre el perfil público del miembro (el app-shell escucha este evento). */
+function openProfile(userId: string) {
+  window.dispatchEvent(new CustomEvent("alqemia:open-profile", { detail: userId }))
+}
 
 export function CommentsSection({
   postId,
@@ -113,11 +118,33 @@ export function CommentsSection({
             ) : (
               comments.map((comment) => (
                 <div key={comment.id} className="flex gap-2">
-                  <UserAvatar user={comment.user} size="sm" />
+                  <button
+                    type="button"
+                    onClick={() => openProfile(comment.user.id)}
+                    aria-label={`Ver perfil de ${comment.user.name}`}
+                    className="shrink-0 cursor-pointer rounded-full transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50"
+                  >
+                    <UserAvatar user={comment.user} size="sm" />
+                  </button>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm leading-snug">
-                      <span className="mr-1.5 font-semibold text-zinc-100">{comment.user.name}</span>
-                      <span className="break-words text-zinc-300">{comment.content}</span>
+                    <p className="flex flex-wrap items-center gap-x-1 text-sm leading-snug">
+                      <button
+                        type="button"
+                        onClick={() => openProfile(comment.user.id)}
+                        aria-label={`Ver perfil de ${comment.user.name}`}
+                        className="cursor-pointer rounded-sm font-semibold text-zinc-100 transition-colors hover:text-gold-bright focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40"
+                      >
+                        {comment.user.name}
+                      </button>
+                      {comment.user.verified && (
+                        <BadgeCheck
+                          className="h-3 w-3 shrink-0 fill-sky-400 text-zinc-950"
+                          aria-label="Cuenta verificada"
+                        />
+                      )}
+                    </p>
+                    <p className="text-sm leading-snug break-words text-zinc-300">
+                      {comment.content}
                     </p>
                     <span className="text-[11px] text-zinc-400">{timeAgo(comment.createdAt)}</span>
                   </div>

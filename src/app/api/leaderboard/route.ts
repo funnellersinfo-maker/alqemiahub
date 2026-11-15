@@ -2,6 +2,7 @@
 import { db } from "@/lib/db"
 import { requireActiveUser, handleApiError } from "@/lib/api-helpers"
 import { getLevelInfo } from "@/lib/gamification"
+import { isVerifiedUser } from "@/lib/profile"
 import type { LeaderboardEntry } from "@/lib/types"
 
 export async function GET() {
@@ -19,6 +20,8 @@ export async function GET() {
         avatarColor: true,
         headline: true,
         xp: true,
+        verified: true,
+        role: true,
       },
     })
 
@@ -30,6 +33,7 @@ export async function GET() {
       headline: u.headline,
       xp: u.xp,
       level: getLevelInfo(u.xp),
+      verified: isVerifiedUser(u),
     }))
 
     return Response.json({ top: entries })
