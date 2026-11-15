@@ -24,9 +24,11 @@ model User {
   role             String    @default("USER") // USER | ADMIN
   status           String    @default("ACTIVE") // ACTIVE | BLOCKED
   headline         String? // "Ecommerce · Moda"
-  bio              String?
+  bio              String? // reseña pública (admite emojis alquímicos [a:xxx])
   goal             String? // objetivo principal
   experience       String? // nivel del quiz: "starter" | "growing" | "scaling"
+  coverImage       String? // dataURL 16:9 — portada pública del perfil
+  verified         Boolean   @default(false) // chulito azul (titular y gran maestres)
   profileCompleted Boolean   @default(false)
   tourCompletedAt  DateTime? // null → el tour del mapa está pendiente
   xp               Int       @default(0)
@@ -43,6 +45,7 @@ model User {
   favorites    ProductFavorite[]
   sales        Sale[]
   chatMessages ChatMessage[]
+  conversations Conversation[]
 
   @@index([xp])
 }
@@ -151,17 +154,38 @@ model Sale {
 }
 
 // ============================================================
-// ASISTENTE IA — historial de conversación por miembro
+// ASISTENTE IA (El Oráculo) — conversaciones con historial
+// persistente (tipo ChatGPT) + mensajes con imagen generada
 // ============================================================
-model ChatMessage {
+model Conversation {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      String // "user" | "assistant"
-  content   String
+  title     String
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages ChatMessage[]
+
+  @@index([userId, updatedAt])
+}
+
+model ChatMessage {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String // "user" | "assistant"
+  content        String
+  kind           String   @default("text") // "text" | "image"
+  imagePrompt    String? // prompt con el que se generó la imagen
+  imageSize      String? // "1024x1024" | "1344x768" | ...
+  imageData      String? // PNG base64 (solo mensajes de imagen)
+  createdAt      DateTime @default(now())
 
   @@index([userId, createdAt])
+  @@index([conversationId, createdAt])
 }
 
 model Post {
@@ -170,6 +194,10 @@ model Post {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   content   String
   image     String? // dataURL de imagen adjunta
+  // Resultados reportados al publicar (evidencia Skool-like del avance real)
+  metricRevenue Float? // facturación reportada (USD)
+  metricOrders  Int? // cantidad de pedidos reportada
+  metricRoas    Float? // rentabilidad reportada (ROAS, ej. 3.2)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

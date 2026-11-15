@@ -215,10 +215,16 @@ async function main() {
   console.log(`Creados ${courseData.length} programas con sus lecciones`)
 
   console.log("Creando miembros...")
-  const users = [
-    { name: "Admin ALQEMIA", email: "admin@alqemia.com", headline: "Equipo ALQEMIA", avatarColor: "#d4af37", xp: 2400, bio: "Cuenta oficial del equipo ALQEMIA. Gestiono la comunidad, el contenido y las métricas del Hub.", goal: "Hacer crecer la comunidad", experience: "scaling", createdAt: daysAgo(30, 0), lastActiveAt: hoursAgo(0), role: "ADMIN" },
-    { name: "Valeria Ríos", email: "valeria@alqemia.com", headline: "Ecommerce · Moda", avatarColor: "#d97706", xp: 1240, bio: "Fundé mi marca de moda hace 2 años. Aquí estoy para escalar con sistemas y sin improvisar.", goal: "Llevar mi tienda a 7 cifras", experience: "scaling", createdAt: daysAgo(13, 5), lastActiveAt: hoursAgo(1) },
-    { name: "Diego Márquez", email: "diego@alqemia.com", headline: "Tráfico · Meta Ads", avatarColor: "#059669", xp: 2110, bio: "Especialista en tráfico. Ayudo a tiendas a escalar con creatividades que funcionan.", goal: "Armar mi agencia de tráfico", experience: "scaling", createdAt: daysAgo(12, 2), lastActiveAt: hoursAgo(3) },
+  // verified: chulito azul del gremio (titular). Los Gran Maestre (Nv 7, 2400+ XP)
+  // lo reciben automáticamente por nivel, calculado en runtime.
+  const users: {
+    name: string; email: string; headline: string; avatarColor: string; xp: number
+    bio: string; goal: string; experience: string; createdAt: Date; lastActiveAt: Date
+    role?: string; status?: string; verified?: boolean
+  }[] = [
+    { name: "Alejo", email: "admin@alqemia.com", headline: "Titular · ALQEMIA", avatarColor: "#d4af37", xp: 2400, verified: true, bio: "Titular del gremio [a:sol]. Transmuto comunidades en máquinas de vender [a:lapis]. Aquí evolucionamos con evidencia, no con humo [a:cinnabaris].", goal: "Hacer crecer la comunidad", experience: "scaling", createdAt: daysAgo(30, 0), lastActiveAt: hoursAgo(0), role: "ADMIN" },
+    { name: "Valeria Ríos", email: "valeria@alqemia.com", headline: "Ecommerce · Moda", avatarColor: "#d97706", xp: 1240, bio: "Fundé mi marca de moda hace 2 años [a:ignis]. Aquí estoy para escalar con sistemas y sin improvisar [a:terra].", goal: "Llevar mi tienda a 7 cifras", experience: "scaling", createdAt: daysAgo(13, 5), lastActiveAt: hoursAgo(1) },
+    { name: "Diego Márquez", email: "diego@alqemia.com", headline: "Tráfico · Meta Ads", avatarColor: "#059669", xp: 2480, bio: "Especialista en tráfico [a:mercurius]. Ayudo a tiendas a escalar con creatividades que funcionan [a:azoth].", goal: "Armar mi agencia de tráfico", experience: "scaling", createdAt: daysAgo(12, 2), lastActiveAt: hoursAgo(3) },
     { name: "Camila Torres", email: "camila@alqemia.com", headline: "Marketing de contenidos", avatarColor: "#e11d48", xp: 660, bio: "Creo contenido para marcas de belleza. En camino de convertir mi perfil en un negocio.", goal: "Duplicar mi comunidad en 90 días", experience: "growing", createdAt: daysAgo(11, 8), lastActiveAt: hoursAgo(6) },
     { name: "Sebastián Vega", email: "sebastian@alqemia.com", headline: "Ecommerce · Dropsi", avatarColor: "#0d9488", xp: 340, bio: "Primera tienda en marcha. Documento todo el proceso, incluidos los fracasos.", goal: "Hacer mi primera venta", experience: "starter", createdAt: daysAgo(10, 1), lastActiveAt: hoursAgo(12) },
     { name: "Lucía Fernández", email: "lucia@alqemia.com", headline: "Copywriting", avatarColor: "#ea580c", xp: 980, bio: "Copywriter freelance. Obsesionada con emails que la gente de verdad abre.", goal: "Llenar mi agenda de clientes", experience: "growing", createdAt: daysAgo(9, 3), lastActiveAt: hoursAgo(20) },
@@ -243,6 +249,7 @@ async function main() {
         goal: u.goal || null,
         experience: u.experience ?? null,
         xp: u.xp,
+        verified: u.verified ?? false,
         profileCompleted: true,
         status: u.status ?? "ACTIVE",
         role: u.role ?? "USER",
