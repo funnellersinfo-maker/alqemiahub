@@ -135,31 +135,43 @@ export function PwaProvider() {
     <div
       role="dialog"
       aria-label="Instalar la aplicación"
-      className="fixed inset-x-3 bottom-3 z-[60] mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-gold/30 bg-zinc-950/95 p-4 shadow-[0_0_40px_-10px_rgba(212,175,55,0.45)] backdrop-blur-md animate-fade-up pb-safe"
+      className="fixed inset-x-3 bottom-3 z-[60] mx-auto max-w-md rounded-2xl border border-gold/30 bg-zinc-950/95 p-4 shadow-[0_0_40px_-10px_rgba(212,175,55,0.45)] backdrop-blur-md animate-fade-up pb-safe"
     >
-      <img
-        src="/icon-192.png"
-        alt=""
-        className="h-10 w-10 shrink-0 rounded-xl"
-        aria-hidden
-      />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-zinc-100">Instala la app de ALQEMIA</p>
-        <p className="text-xs text-zinc-400">Queda anclada a tu escritorio o barra de tareas, como una app real.</p>
-      </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        <Button
-          size="sm"
-          variant="ghost"
-          className="text-zinc-500 hover:text-zinc-300"
-          onClick={dismiss}
-        >
-          Ahora no
-        </Button>
-        <Button size="sm" className="btn-gold font-semibold" onClick={() => void install()}>
-          <Download aria-hidden />
-          Instalar
-        </Button>
+      {/* Tarjeta compacta apilada (funciona igual de bien en móvil y escritorio):
+          icono + título/descripción con ancho completo, botones al pie */}
+      <div className="flex flex-col gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <img
+            src="/icon-192.png"
+            alt=""
+            className="h-10 w-10 shrink-0 rounded-xl"
+            aria-hidden
+          />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-zinc-100">Instala la app de ALQEMIA</p>
+            <p className="mt-0.5 text-balance text-xs leading-snug text-zinc-400">
+              En tu pantalla de inicio o escritorio, como una app real.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-9 flex-1 text-zinc-500 hover:text-zinc-300"
+            onClick={dismiss}
+          >
+            Ahora no
+          </Button>
+          <Button
+            size="sm"
+            className="btn-gold h-9 flex-1 font-semibold"
+            onClick={() => void install()}
+          >
+            <Download aria-hidden />
+            Instalar
+          </Button>
+        </div>
       </div>
     </div>
   )

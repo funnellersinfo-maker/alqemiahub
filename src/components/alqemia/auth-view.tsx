@@ -207,8 +207,9 @@ export function AuthView() {
               onUnlock={() => void handleUnlock()}
             />
           ) : (
+          <div className="relative w-full max-w-md">
           <div
-            className="gate-card animate-fade-up w-full max-w-md p-5 [animation-delay:0.9s] sm:p-7"
+            className="gate-card animate-fade-up p-5 [animation-delay:0.9s] sm:p-7"
           >
             <Tabs
               value={tab}
@@ -341,15 +342,20 @@ export function AuthView() {
               <br />© ALQEMIA · Marketing & Ecommerce
             </p>
           </div>
+
+            {/* ============ CINTA DE CÓDICE ============ */}
+            {/* Cinta dorada a todo lo ancho que cruza y roza la esquina
+                inferior de la Puerta (efecto cinta de códice) */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-x-[-50vw] bottom-[-18px] z-20 -rotate-[1.1deg]"
+            >
+              <Marquee items={MARQUEE_ITEMS} />
+            </div>
+          </div>
           )}
         </div>
       </main>
-
-      {/* ============ CINTA DE CÓDICE ============ */}
-      <div className="relative z-10 -mx-2 -rotate-[1.1deg]">
-        <Marquee items={MARQUEE_ITEMS} />
-      </div>
-
     </div>
   )
 }
