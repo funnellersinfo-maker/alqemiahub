@@ -10,7 +10,7 @@
 // antiguas que quedaron guardadas en visitas previas).
 // ============================================================
 
-const VERSION = "alqemia-v3"
+const VERSION = "alqemia-v4"
 const SHELL_CACHE = `${VERSION}-shell`
 const STATIC_CACHE = `${VERSION}-static`
 
