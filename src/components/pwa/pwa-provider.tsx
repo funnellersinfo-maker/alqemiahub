@@ -43,11 +43,27 @@ export function PwaProvider() {
   const [visible, setVisible] = useState(false)
 
   // 1) Registrar el Service Worker (solo producción: en dev evita caché vieja)
+  //    · updateViaCache:"none" → el navegador NUNCA usa su caché HTTP para
+  //      comprobar actualizaciones del SW: los despliegues llegan siempre.
+  //    · Al tomar el control una versión nueva → recarga UNA vez para que el
+  //      usuario vea iconos/letras nuevos al instante (sin bucles).
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") return
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {})
+    if (!("serviceWorker" in navigator)) return
+
+    navigator.serviceWorker
+      .register("/sw.js", { updateViaCache: "none" })
+      .catch(() => {})
+
+    let reloaded = false
+    const onControllerChange = () => {
+      if (reloaded) return
+      reloaded = true
+      window.location.reload()
     }
+    navigator.serviceWorker.addEventListener("controllerchange", onControllerChange)
+    return () =>
+      navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange)
   }, [])
 
   // 2) Detectar capacidad de instalación
@@ -103,7 +119,7 @@ export function PwaProvider() {
             <Smartphone className="h-5 w-5 text-gold-bright" aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-zinc-100">Instala <AlqemiaLetters text="ALQEMIA" strokeWidth={14} /> en tu iPhone</p>
+            <p className="text-balance text-sm font-semibold leading-snug text-zinc-100">Instala <AlqemiaLetters text="ALQEMIA" strokeWidth={14} /> en tu iPhone</p>
             <ol className="mt-1.5 space-y-1 text-xs leading-relaxed text-zinc-400">
               <li>
                 1. Toca el ícono <strong className="text-zinc-200">Compartir</strong>{" "}
@@ -149,7 +165,7 @@ export function PwaProvider() {
             aria-hidden
           />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-zinc-100">Instala la app de <AlqemiaLetters text="ALQEMIA" strokeWidth={14} /></p>
+            <p className="text-balance text-sm font-semibold leading-snug text-zinc-100">Instala la app de <AlqemiaLetters text="ALQEMIA" strokeWidth={14} /></p>
             <p className="mt-0.5 text-balance text-xs leading-snug text-zinc-400">
               En tu pantalla de inicio o escritorio, como una app real.
             </p>

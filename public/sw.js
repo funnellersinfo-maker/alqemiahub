@@ -4,9 +4,13 @@
 //   · Navegación → red primero, respaldo a "/" (offline)
 //   · Estáticos (_next/static, iconos, imágenes) → caché primero
 //   · APIs (/api/*) → siempre red (nunca cachear datos vivos)
+// IMPORTANTE: al cambiar iconos o assets públicos hay que subir
+// la VERSIÓN — la activación borra las cachés viejas en todos
+// los dispositivos (iconos/letras nuevas reemplazan a las
+// antiguas que quedaron guardadas en visitas previas).
 // ============================================================
 
-const VERSION = "alqemia-v1"
+const VERSION = "alqemia-v3"
 const SHELL_CACHE = `${VERSION}-shell`
 const STATIC_CACHE = `${VERSION}-static`
 

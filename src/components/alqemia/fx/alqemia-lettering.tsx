@@ -189,6 +189,10 @@ export function AlqemiaLetters({
       <svg
         viewBox={`0 0 ${width} 100`}
         className="alq-letters"
+        // Proporción explícita: si un contenedor estrecho recorta el
+        // ancho (max-width), la altura se reduce en la misma medida.
+        // Es la regla general anti-estiramiento en cualquier dispositivo.
+        style={{ aspectRatio: `${width} / 100` }}
         fill="none"
         aria-hidden="true"
         focusable="false"

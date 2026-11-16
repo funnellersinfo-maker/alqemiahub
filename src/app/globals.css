@@ -192,7 +192,12 @@
 }
 
 /* ---- Letra ALQEMIA (letrero propio en SVG) ----
-   Se dimensiona por el font-size del contexto: altura ≈ 1em. */
+   Se dimensiona por el font-size del contexto: altura ≈ 1em.
+   REGLA ANTI-ESTIRAMIENTO: el componente inyecta `aspect-ratio`
+   inline; si un contenedor angosto recorta el ancho (max-width),
+   la altura se reduce EN LA MISMA PROPORCIÓN — las letras nunca
+   se ven alargadas verticalmente, en ningún dispositivo/tamaño
+   de fuente del sistema. */
 .alq-letters {
   height: 0.98em;
   width: auto;

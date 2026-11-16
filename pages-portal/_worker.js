@@ -45,15 +45,34 @@ const portalWorker = {
     headers.set("x-alqemia-portal", "1");
 
     const method = request.method.toUpperCase();
-    const upstreamReq = new Request(toUpstreamUrl(url), {
-      method: request.method,
-      headers,
-      // GET/HEAD no llevan cuerpo; el resto se transmite en streaming
-      body: method === "GET" || method === "HEAD" ? undefined : request.body,
-      redirect: "manual",
-    });
+    const canRetry = method === "GET" || method === "HEAD"; // sin cuerpo → reintentable
+    const buildUpstream = () =>
+      new Request(toUpstreamUrl(url), {
+        method: request.method,
+        headers,
+        // GET/HEAD no llevan cuerpo; el resto se transmite en streaming
+        body: canRetry ? undefined : request.body,
+        redirect: "manual",
+      });
 
-    const res = await fetch(upstreamReq);
+    // Reinteno único ante fallos de red / cold-start del Worker interno
+    // (redes móviles inestables, primer arranque, modo incógnito). Si aun
+    // así falla, se entrega una página elegante en vez del error seco de
+    // Cloudflare.
+    let res;
+    try {
+      res = await fetch(buildUpstream());
+    } catch (err) {
+      if (!canRetry) throw err;
+      try {
+        res = await fetch(buildUpstream());
+      } catch {
+        return new Response(
+          '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ALQEMIA</title><style>body{background:#050505;color:#d4af37;font-family:system-ui,sans-serif;display:grid;place-items:center;height:100vh;margin:0;text-align:center}div{padding:2rem;max-width:28rem}h1{font-size:1.05rem;font-weight:600;letter-spacing:.08em}p{color:#a1a1aa;font-size:.85rem;line-height:1.6}</style></head><body><div><h1>ALQEMIA</h1><p>La conexión con el Hub se cayó un instante.<br>Vuelve a cargar la página en unos segundos.</p></div></body></html>',
+          { status: 502, headers: { "content-type": "text/html; charset=utf-8" } }
+        );
+      }
+    }
 
     // Pase de respuesta: conserva streaming, cookies y cabeceras
     const out = new Response(res.body, res);
