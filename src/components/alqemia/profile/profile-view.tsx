@@ -18,10 +18,12 @@ import {
   BookOpen,
   ClipboardCheck,
   DollarSign,
+  FileBarChart,
   FlaskConical,
   Footprints,
   Loader2,
   LogOut,
+  Map,
   Megaphone,
   MessageCircle,
   Package,
@@ -30,6 +32,7 @@ import {
   Sparkles,
   Target,
   TrendingUp,
+  Trophy,
   Zap,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
@@ -66,11 +69,14 @@ import { Leaderboard } from "./leaderboard"
 /** Icono lucide asociado a cada logro (ACHIEVEMENTS[code].icon) */
 const ICONS: Record<string, LucideIcon> = {
   Sparkles,
+  Map,
   FlaskConical,
   Megaphone,
+  FileBarChart,
   MessageCircle,
   Footprints,
   BookOpen,
+  Trophy,
   Award,
 }
 
@@ -545,7 +551,10 @@ export function ProfileView({
                   <Card
                     key={code}
                     className={cn(
-                      "min-w-0 flex-row items-center gap-3 rounded-2xl p-3.5",
+                      // Móvil: icono ARRIBA y texto con todo el ancho de la
+                      // tarjeta (así los nombres largos no tienen que encogerse
+                      // hasta lo ilegible). sm+: icono a la izquierda.
+                      "min-w-0 flex-row items-center gap-3 rounded-2xl p-3.5 max-sm:flex-col max-sm:items-start max-sm:gap-2.5",
                       unlocked ? "border-gold-bright/60 bg-gold/10" : "opacity-70"
                     )}
                   >
@@ -557,7 +566,7 @@ export function ProfileView({
                     >
                       <Icon className="h-5 w-5" aria-hidden />
                     </div>
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 w-full flex-1">
                       {/* FitText: el nombre NUNCA se desborda en móvil */}
                       <FitText
                         as="p"
@@ -569,7 +578,7 @@ export function ProfileView({
                       >
                         {achievement.label}
                       </FitText>
-                      <p className="mt-0.5 text-[11px] text-zinc-500">
+                      <p className="mt-0.5 text-[11px] leading-snug text-zinc-500">
                         {unlocked ? `Obtenido · ${timeAgo(unlocked.createdAt)}` : "Bloqueado"}
                       </p>
                     </div>

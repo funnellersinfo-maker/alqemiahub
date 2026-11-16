@@ -149,6 +149,28 @@
 }
 
 /* ------------------------------------------------------------
+   ALQEMIA — REGLA GENERAL ANTI-DESBORDE (todos los textos,
+   todos los dispositivos, en tiempo real, sin excepciones)
+   1) overflow-wrap: break-word — una palabra más ancha que su
+      contenedor se quiebra DENTRO de la caja en vez de
+      desbordarse hacia afuera (móviles, tablets, escritorio).
+   2) min-width: 0 en los hijos directos de flex/grid — permite
+      que los bloques de texto encojan con su contenedor en vez
+      de empujar la caja (comportamiento que causaba que los
+      logros y chips se salieran en pantallas angostas).
+   `:where()` da especificidad CERO: la regla nunca pelea con
+   utilidades de Tailwind ni estilos de componentes; solo actúa
+   como red de seguridad cuando nada más lo evita.
+   ------------------------------------------------------------ */
+:where(p, h1, h2, h3, h4, h5, h6, li, dd, dt, td, th, label,
+  blockquote, figcaption, summary, a, button, span, div) {
+  overflow-wrap: break-word;
+}
+:where(.flex, .inline-flex, .grid, .inline-grid) > * {
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------
    Utilidades de marca ALQEMIA
    ------------------------------------------------------------ */
 
