@@ -265,7 +265,7 @@ function ProfileSkeleton() {
       <Card className="gap-0 overflow-hidden rounded-2xl p-0">
         <Skeleton className="h-36 w-full rounded-none sm:h-44" />
         <div className="space-y-4 p-5 sm:p-6">
-          <Skeleton className="-mt-16 h-20 w-20 rounded-full" />
+          <Skeleton className="relative z-10 -mt-10 h-20 w-20 rounded-full" />
           <div className="space-y-2 pt-2">
             <Skeleton className="h-6 w-48" />
             <Skeleton className="h-4 w-64" />
@@ -386,7 +386,10 @@ export function ProfileView({
           <UserAvatar
             user={identity}
             size="2xl"
-            className="-mt-10 h-20 w-20 ring-2 ring-gold ring-offset-4 ring-offset-zinc-950"
+            // relative + z-10: la foto SIEMPRE pinta por ENCIMA de la portada
+            // (la portada es "relative" y, sin esto, el CSS tapa la mitad
+            // superior del círculo — regla de apilamiento de posicionados).
+            className="relative z-10 -mt-10 h-20 w-20 ring-2 ring-gold ring-offset-4 ring-offset-zinc-950"
           />
 
           <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2">
