@@ -63,7 +63,7 @@ const CATEGORIES: Category[] = [
   {
     key: "voice",
     title: "Voz & Audio",
-    desc: "Convierte texto en voz humana con IA: elige entre 20+ voces y descarga el audio.",
+    desc: "Convierte texto en voz humana con IA: 40 voces neuronales con acentos de toda Latinoamérica, descargables en MP3.",
     icon: AudioLines,
     tools: ["Voz del Alquimista"],
     soonCount: 0,

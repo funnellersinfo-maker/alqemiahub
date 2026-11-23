@@ -483,39 +483,114 @@ export type HubSettings = {
 }
 
 // ============================================================
-// VOZ IA — catálogo de voces del generador de audio
+// VOZ IA — catálogo de voces neuronales en español latino
+// (servicio gratuito de voces neuronales de Microsoft Edge:
+//  40 voces, 20 países/regiones de toda Latinoamérica)
 // ============================================================
 
-export type TtsEngine = "google" | "casa"
+export type TtsVoiceGender = "F" | "M"
 
-export type TtsVoice = {
+export type TtsVoiceRegion = "Norteamérica" | "Centroamérica" | "Caribe" | "Sudamérica"
+
+export type TtsVoiceOption = {
+  /** Identificador del servicio, p. ej. "es-MX-DaliaNeural" */
   id: string
-  engine: TtsEngine
-  label: string
-  desc: string
-  flag: string
+  /** Nombre legible, p. ej. "Dalia" */
+  name: string
+  gender: TtsVoiceGender
 }
 
-export const TTS_VOICES: TtsVoice[] = [
-  { id: "es", engine: "google", label: "Español España", desc: "Castellano neutro", flag: "ES" },
-  { id: "es-US", engine: "google", label: "Español Latino", desc: "Acento latino de EE. UU.", flag: "LATAM" },
-  { id: "es-MX", engine: "google", label: "Español Mexicano", desc: "Acento mexicano", flag: "MX" },
-  { id: "pt", engine: "google", label: "Portugués", desc: "Brasil", flag: "BR" },
-  { id: "en", engine: "google", label: "Inglés", desc: "US", flag: "EN" },
-  { id: "fr", engine: "google", label: "Francés", desc: "Francia", flag: "FR" },
-  { id: "it", engine: "google", label: "Italiano", desc: "Italia", flag: "IT" },
-  { id: "de", engine: "google", label: "Alemán", desc: "Alemania", flag: "DE" },
-  { id: "ja", engine: "google", label: "Japonés", desc: "Japón", flag: "JA" },
-  { id: "ko", engine: "google", label: "Coreano", desc: "Corea", flag: "KO" },
-  { id: "zh", engine: "google", label: "Chino", desc: "Mandarín", flag: "ZH" },
-  { id: "ru", engine: "google", label: "Ruso", desc: "Rusia", flag: "RU" },
-  { id: "ar", engine: "google", label: "Árabe", desc: "Internacional", flag: "AR" },
-  { id: "hi", engine: "google", label: "Hindi", desc: "India", flag: "HI" },
-  { id: "jam", engine: "casa", label: "Jam", desc: "Caballero británico · voz de la casa", flag: "PRO" },
-  { id: "kazi", engine: "casa", label: "Kazi", desc: "Locutor claro y estándar", flag: "PRO" },
-  { id: "tongtong", engine: "casa", label: "TongTong", desc: "Cálida y cercana", flag: "PRO" },
-  { id: "xiaochen", engine: "casa", label: "XiaoChen", desc: "Sobria y profesional", flag: "PRO" },
-  { id: "douji", engine: "casa", label: "DouJi", desc: "Natural y fluida", flag: "PRO" },
-  { id: "luodo", engine: "casa", label: "LuoDo", desc: "Expresiva y con fuerza", flag: "PRO" },
-  { id: "chuichui", engine: "casa", label: "ChuiChui", desc: "Dulce y juguetona", flag: "PRO" },
+export type TtsCountry = {
+  /** Código de país para la insignia, p. ej. "MX" */
+  cc: string
+  /** Nombre en español, p. ej. "México" */
+  country: string
+  region: TtsVoiceRegion
+  voices: [TtsVoiceOption, TtsVoiceOption]
+}
+
+export const TTS_COUNTRIES: TtsCountry[] = [
+  { cc: "MX", country: "México", region: "Norteamérica", voices: [
+    { id: "es-MX-DaliaNeural", name: "Dalia", gender: "F" },
+    { id: "es-MX-JorgeNeural", name: "Jorge", gender: "M" },
+  ]},
+  { cc: "US", country: "Latino de EE. UU.", region: "Norteamérica", voices: [
+    { id: "es-US-PalomaNeural", name: "Paloma", gender: "F" },
+    { id: "es-US-AlonsoNeural", name: "Alonso", gender: "M" },
+  ]},
+  { cc: "CR", country: "Costa Rica", region: "Centroamérica", voices: [
+    { id: "es-CR-MariaNeural", name: "María", gender: "F" },
+    { id: "es-CR-JuanNeural", name: "Juan", gender: "M" },
+  ]},
+  { cc: "SV", country: "El Salvador", region: "Centroamérica", voices: [
+    { id: "es-SV-LorenaNeural", name: "Lorena", gender: "F" },
+    { id: "es-SV-RodrigoNeural", name: "Rodrigo", gender: "M" },
+  ]},
+  { cc: "GT", country: "Guatemala", region: "Centroamérica", voices: [
+    { id: "es-GT-MartaNeural", name: "Marta", gender: "F" },
+    { id: "es-GT-AndresNeural", name: "Andrés", gender: "M" },
+  ]},
+  { cc: "HN", country: "Honduras", region: "Centroamérica", voices: [
+    { id: "es-HN-KarlaNeural", name: "Karla", gender: "F" },
+    { id: "es-HN-CarlosNeural", name: "Carlos", gender: "M" },
+  ]},
+  { cc: "NI", country: "Nicaragua", region: "Centroamérica", voices: [
+    { id: "es-NI-YolandaNeural", name: "Yolanda", gender: "F" },
+    { id: "es-NI-FedericoNeural", name: "Federico", gender: "M" },
+  ]},
+  { cc: "PA", country: "Panamá", region: "Centroamérica", voices: [
+    { id: "es-PA-MargaritaNeural", name: "Margarita", gender: "F" },
+    { id: "es-PA-RobertoNeural", name: "Roberto", gender: "M" },
+  ]},
+  { cc: "CU", country: "Cuba", region: "Caribe", voices: [
+    { id: "es-CU-BelkysNeural", name: "Belkys", gender: "F" },
+    { id: "es-CU-ManuelNeural", name: "Manuel", gender: "M" },
+  ]},
+  { cc: "PR", country: "Puerto Rico", region: "Caribe", voices: [
+    { id: "es-PR-KarinaNeural", name: "Karina", gender: "F" },
+    { id: "es-PR-VictorNeural", name: "Víctor", gender: "M" },
+  ]},
+  { cc: "DO", country: "Rep. Dominicana", region: "Caribe", voices: [
+    { id: "es-DO-RamonaNeural", name: "Ramona", gender: "F" },
+    { id: "es-DO-EmilioNeural", name: "Emilio", gender: "M" },
+  ]},
+  { cc: "AR", country: "Argentina", region: "Sudamérica", voices: [
+    { id: "es-AR-ElenaNeural", name: "Elena", gender: "F" },
+    { id: "es-AR-TomasNeural", name: "Tomás", gender: "M" },
+  ]},
+  { cc: "BO", country: "Bolivia", region: "Sudamérica", voices: [
+    { id: "es-BO-SofiaNeural", name: "Sofía", gender: "F" },
+    { id: "es-BO-MarceloNeural", name: "Marcelo", gender: "M" },
+  ]},
+  { cc: "CL", country: "Chile", region: "Sudamérica", voices: [
+    { id: "es-CL-CatalinaNeural", name: "Catalina", gender: "F" },
+    { id: "es-CL-LorenzoNeural", name: "Lorenzo", gender: "M" },
+  ]},
+  { cc: "CO", country: "Colombia", region: "Sudamérica", voices: [
+    { id: "es-CO-SalomeNeural", name: "Salomé", gender: "F" },
+    { id: "es-CO-GonzaloNeural", name: "Gonzalo", gender: "M" },
+  ]},
+  { cc: "EC", country: "Ecuador", region: "Sudamérica", voices: [
+    { id: "es-EC-AndreaNeural", name: "Andrea", gender: "F" },
+    { id: "es-EC-LuisNeural", name: "Luis", gender: "M" },
+  ]},
+  { cc: "PY", country: "Paraguay", region: "Sudamérica", voices: [
+    { id: "es-PY-TaniaNeural", name: "Tania", gender: "F" },
+    { id: "es-PY-MarioNeural", name: "Mario", gender: "M" },
+  ]},
+  { cc: "PE", country: "Perú", region: "Sudamérica", voices: [
+    { id: "es-PE-CamilaNeural", name: "Camila", gender: "F" },
+    { id: "es-PE-AlexNeural", name: "Alex", gender: "M" },
+  ]},
+  { cc: "UY", country: "Uruguay", region: "Sudamérica", voices: [
+    { id: "es-UY-ValentinaNeural", name: "Valentina", gender: "F" },
+    { id: "es-UY-MateoNeural", name: "Mateo", gender: "M" },
+  ]},
+  { cc: "VE", country: "Venezuela", region: "Sudamérica", voices: [
+    { id: "es-VE-PaolaNeural", name: "Paola", gender: "F" },
+    { id: "es-VE-SebastianNeural", name: "Sebastián", gender: "M" },
+  ]},
 ]
+
+/** Conjunto de todos los ids de voz válidos (validación del backend). */
+export const TTS_VOICE_IDS = new Set(TTS_COUNTRIES.flatMap((c) => c.voices.map((v) => v.id)))

@@ -1,0 +1,11 @@
+{
+  "name": "alqemia-edge-tts",
+  "private": true,
+  "scripts": {
+    "dev": "bun --hot index.ts"
+  },
+  "dependencies": {
+    "@types/ws": "^8.5.12",
+    "ws": "^8.18.0"
+  }
+}

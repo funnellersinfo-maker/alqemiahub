@@ -1,102 +1,105 @@
 // ============================================================
 // /api/tools/tts — LA VOZ DEL ALQUIMISTA (generador de voz IA)
-// POST { text, voice, speed } → audio binario (mp3/wav)
+// POST { text, voice, rate, pitch } → audio MP3 binario
 //
-// Dos motores, ambos 100% gratuitos y sin API key:
-//   · Motor Google (es, es-US, es-MX, en, pt, fr, it, de…) —
-//     TTS público; el texto se trocea en frases (≤200 car.) y
-//     los MP3 se concatenan en un solo audio.
-//   · Voces de la casa (z-ai SDK: jam, kazi, tongtong…) —
-//     premium, con control de velocidad 0.5x–2x (WAV).
+// Motor: voces neuronales de Microsoft Edge (Edge-TTS), 100%
+// gratuito y sin API key. 40 voces en español con acentos de
+// toda Latinoamérica.
+//
+// Dos caminos de transporte, mismo protocolo (edge-tts-core):
+//   · Producción (Cloudflare Workers): fetch() con Upgrade
+//     websocket + cabeceras custom (Origin/UA/Cookie muid).
+//   · Desarrollo: proxy al mini-service local (puerto 3031,
+//     paquete `ws` con cabeceras completas).
 // ============================================================
 
 import { NextRequest, NextResponse } from "next/server"
 import { requireActiveUser, errorResponse, handleApiError, ApiError } from "@/lib/api-helpers"
-import { TTS_VOICES } from "@/lib/types"
+import { TTS_VOICE_IDS } from "@/lib/types"
+import {
+  synthesizeEdge,
+  buildEdgeUrl,
+  edgeHandshakeHeaders,
+  type EdgeSocket,
+  type EdgeProsody,
+} from "@/lib/edge-tts-core"
 
-const GOOGLE_MAX_CHARS = 3000 // ~15 trozos de 200
-const CASA_MAX_CHARS = 1024 // límite del SDK
-const GT_CHUNK = 190 // margen bajo el límite de 200 del endpoint
+const MAX_CHARS = 3000
+const MINI_SERVICE = "http://localhost:3031/synthesize"
 
-const UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+const isWorkerd =
+  typeof navigator !== "undefined" && navigator.userAgent === "Cloudflare-Workers"
 
-/** Trocea el texto en piezas ≤ maxChars cortando por frases. */
-function chunkText(text: string, maxChars: number): string[] {
-  const sentences = text.match(/[^.!?\n]+[.!?]*\s*|\n+/g) ?? [text]
-  const chunks: string[] = []
-  let current = ""
-  for (const sentence of sentences) {
-    if (sentence.length > maxChars) {
-      // frase kilométrica: córtala por palabras
-      if (current.trim()) {
-        chunks.push(current.trim())
-        current = ""
-      }
-      const words = sentence.split(/\s+/)
-      for (const w of words) {
-        if ((current + " " + w).trim().length > maxChars) {
-          if (current.trim()) chunks.push(current.trim())
-          current = w.length > maxChars ? w.slice(0, maxChars) : w
-        } else {
-          current = current ? `${current} ${w}` : w
-        }
-      }
-    } else if ((current + sentence).length > maxChars) {
-      if (current.trim()) chunks.push(current.trim())
-      current = sentence
-    } else {
-      current += sentence
-    }
+/** Adaptador del WebSocket de workerd (resp.webSocket) a EdgeSocket. */
+function adaptWorkerdSocket(raw: WebSocket & { accept(): void }): EdgeSocket {
+  raw.accept()
+  try {
+    raw.binaryType = "arraybuffer"
+  } catch {
+    /* workerd ya usa arraybuffer por defecto */
   }
-  if (current.trim()) chunks.push(current.trim())
-  return chunks.filter((c) => c.length > 0)
+  return {
+    send: (d) => raw.send(d),
+    close: () => {
+      try {
+        raw.close()
+      } catch {
+        /* noop */
+      }
+    },
+    onText: (cb) =>
+      raw.addEventListener("message", (ev) => {
+        if (typeof ev.data === "string") cb(ev.data)
+      }),
+    onBinary: (cb) =>
+      raw.addEventListener("message", (ev) => {
+        if (typeof ev.data !== "string") cb(ev.data as ArrayBuffer)
+      }),
+    onError: (cb) => raw.addEventListener("error", () => cb(null)),
+    onClose: (cb) =>
+      raw.addEventListener("close", (ev) => {
+        const close = ev as CloseEvent
+        cb(close.code, close.reason)
+      }),
+  }
 }
 
-/** Motor Google: TTS público troceado y concatenado (audio/mpeg). */
-async function googleTts(text: string, lang: string): Promise<Uint8Array> {
-  const chunks = chunkText(text, GT_CHUNK)
-  const buffers: Uint8Array[] = []
-  for (const chunk of chunks) {
-    const url =
-      "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob" +
-      `&tl=${encodeURIComponent(lang)}&q=${encodeURIComponent(chunk)}`
-    const res = await fetch(url, {
-      headers: { "User-Agent": UA, Referer: "https://translate.google.com/" },
-      signal: AbortSignal.timeout(25_000),
-    })
-    if (!res.ok) {
-      throw new ApiError(502, "El motor de voz no respondió. Intenta de nuevo en unos segundos.")
+/** Conexión fetch-upgrade con reintento por desfase de reloj (como la referencia). */
+function makeWorkerdConnector(): () => Promise<EdgeSocket> {
+  let skewSeconds = 0
+  let retried = false
+  return async () => {
+    const attempt = (secs: number) =>
+      fetch(buildEdgeUrl("https", secs), {
+        headers: { Upgrade: "websocket", ...edgeHandshakeHeaders() },
+      }) as Promise<Response & { webSocket?: (WebSocket & { accept(): void }) | null }>
+
+    let resp = await attempt(skewSeconds)
+    if (resp.status !== 101 || !resp.webSocket) {
+      if (!retried) {
+        retried = true
+        const dateHeader = resp.headers.get("date")
+        const serverTime = dateHeader ? Date.parse(dateHeader) / 1000 : NaN
+        if (Number.isFinite(serverTime)) skewSeconds = serverTime - Date.now() / 1000
+        resp = await attempt(skewSeconds)
+      }
     }
-    const data = new Uint8Array(await res.arrayBuffer())
-    if (data.byteLength < 64) {
-      throw new ApiError(502, "El motor de voz devolvió audio vacío. Prueba con menos texto.")
+    if (resp.status !== 101 || !resp.webSocket) {
+      throw new ApiError(502, "El motor de voz no aceptó la conexión. Intenta de nuevo en unos segundos.")
     }
-    buffers.push(data)
+    return adaptWorkerdSocket(resp.webSocket)
   }
-  const total = buffers.reduce((acc, b) => acc + b.byteLength, 0)
-  const out = new Uint8Array(total)
-  let offset = 0
-  for (const b of buffers) {
-    out.set(b, offset)
-    offset += b.byteLength
-  }
-  return out
 }
 
-/** Voces de la casa: SDK z-ai (WAV, velocidad 0.5–2.0). */
-async function casaTts(text: string, voice: string, speed: number): Promise<Uint8Array> {
-  const { default: ZAI } = await import("z-ai-web-dev-sdk")
-  const zai = await ZAI.create()
-  const response = await zai.audio.tts.create({
-    input: text,
-    voice,
-    speed,
-    response_format: "wav",
-    stream: false,
+function mp3Response(audio: Uint8Array): NextResponse {
+  return new NextResponse(audio as unknown as BodyInit, {
+    status: 200,
+    headers: {
+      "Content-Type": "audio/mpeg",
+      "Content-Length": String(audio.byteLength),
+      "Cache-Control": "no-store",
+    },
   })
-  const arrayBuffer = await response.arrayBuffer()
-  return new Uint8Array(arrayBuffer)
 }
 
 export async function POST(req: NextRequest) {
@@ -106,46 +109,65 @@ export async function POST(req: NextRequest) {
 
     const body = ((await req.json().catch(() => null)) ?? {}) as Record<string, unknown>
     const text = typeof body.text === "string" ? body.text.trim() : ""
-    const voiceId = typeof body.voice === "string" ? body.voice : "es"
-    const speedRaw = typeof body.speed === "number" ? body.speed : 1
+    const voice = typeof body.voice === "string" ? body.voice : ""
+    const rateRaw = typeof body.rate === "number" ? body.rate : 0
+    const pitchRaw = typeof body.pitch === "number" ? body.pitch : 0
 
     if (text.length === 0) return errorResponse(400, "Escribe el texto que quieres escuchar")
-    if (text.length > GOOGLE_MAX_CHARS) {
-      return errorResponse(400, `Máximo ${GOOGLE_MAX_CHARS} caracteres por generación`)
+    if (text.length > MAX_CHARS) {
+      return errorResponse(400, `Máximo ${MAX_CHARS} caracteres por generación`)
+    }
+    if (!TTS_VOICE_IDS.has(voice)) return errorResponse(400, "Voz no disponible")
+
+    const prosody: EdgeProsody = {
+      ratePct: Math.min(100, Math.max(-50, Math.round(rateRaw))),
+      pitchHz: Math.min(50, Math.max(-50, Math.round(pitchRaw))),
+      volumePct: 0,
     }
 
-    const voice = TTS_VOICES.find((v) => v.id === voiceId)
-    if (!voice) return errorResponse(400, "Voz no disponible")
-
-    if (voice.engine === "google") {
-      const audio = await googleTts(text, voice.id)
-      return new NextResponse(audio as unknown as BodyInit, {
-        status: 200,
-        headers: {
-          "Content-Type": "audio/mpeg",
-          "Content-Length": String(audio.byteLength),
-          "Cache-Control": "no-store",
-        },
+    // ---------- Producción: workerd con fetch-upgrade ----------
+    if (isWorkerd) {
+      const audio = await synthesizeEdge(makeWorkerdConnector(), {
+        text,
+        voiceId: voice,
+        prosody,
+        timeoutMs: 45_000,
       })
+      return mp3Response(audio)
     }
 
-    // Voces de la casa
-    if (text.length > CASA_MAX_CHARS) {
-      return errorResponse(400, `La voz ${voice.label} admite máximo ${CASA_MAX_CHARS} caracteres`)
-    }
-    const speed = Math.min(2, Math.max(0.5, Number.isFinite(speedRaw) ? speedRaw : 1))
-    const audio = await casaTts(text, voice.id, speed)
-    return new NextResponse(audio as unknown as BodyInit, {
-      status: 200,
-      headers: {
-        "Content-Type": "audio/wav",
-        "Content-Length": String(audio.byteLength),
-        "Cache-Control": "no-store",
-      },
+    // ---------- Desarrollo: proxy al mini-service local ----------
+    const res = await fetch(MINI_SERVICE, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text,
+        voice,
+        rate: prosody.ratePct,
+        pitch: prosody.pitchHz,
+        volume: prosody.volumePct,
+      }),
+      signal: AbortSignal.timeout(60_000),
     })
+    if (!res.ok) {
+      let message = "El generador de voz no está disponible. Intenta de nuevo."
+      try {
+        const data = (await res.json()) as { error?: string }
+        if (data && typeof data.error === "string" && data.error) message = data.error
+      } catch {
+        /* cuerpo sin JSON */
+      }
+      return errorResponse(res.status === 400 ? 400 : 502, message)
+    }
+    const audio = new Uint8Array(await res.arrayBuffer())
+    if (audio.byteLength < 64) {
+      return errorResponse(502, "El motor de voz devolvió audio vacío. Prueba con menos texto.")
+    }
+    return mp3Response(audio)
   } catch (e) {
-    if (e instanceof Error && e.message.includes("1214")) {
-      return errorResponse(502, "La voz de la casa no está disponible ahora. Prueba otra voz.")
+    const msg = e instanceof Error ? e.message : ""
+    if (msg.includes("timeout") || msg.includes("EdgeTtsError: timeout")) {
+      return errorResponse(504, "La generación tardó demasiado. Prueba con un texto más corto.")
     }
     return handleApiError(e)
   }
