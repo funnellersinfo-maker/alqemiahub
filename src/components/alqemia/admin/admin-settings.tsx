@@ -7,7 +7,6 @@
 //  · La Gran Purga: zona de peligro para vaciar miembros y muro.
 // ============================================================
 
-import { useEffect, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   Loader2,
@@ -32,11 +31,10 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/alqemia/empty-state"
 import { adminFetch, isLockedError } from "@/components/alqemia/admin/admin-fetch"
+import { VideoUploadField, mediaKeyFromUrl } from "@/components/alqemia/admin/video-upload"
 
 type AdminSetting = { key: string; value: string; updatedAt: string }
 
@@ -87,76 +85,11 @@ function QueryErrorView({ error, onRetry }: { error: Error; onRetry: () => void 
 }
 
 // ============================================================
-// Vista previa del vídeo (mismo criterio que el Muro)
-// ============================================================
-
-/** Extrae la URL de embed de YouTube (watch / youtu.be / embed / shorts) o null. */
-function youtubeEmbed(url: string): string | null {
-  const patterns = [
-    /(?:youtube\.com\/watch\?(?:.*&)?v=)([\w-]{6,})/i,
-    /(?:youtu\.be\/)([\w-]{6,})/i,
-    /(?:youtube\.com\/embed\/)([\w-]{6,})/i,
-    /(?:youtube\.com\/shorts\/)([\w-]{6,})/i,
-  ]
-  for (const p of patterns) {
-    const m = url.match(p)
-    if (m) return `https://www.youtube.com/embed/${m[1]}`
-  }
-  return null
-}
-
-function VideoPreview({ url }: { url: string }) {
-  const embed = youtubeEmbed(url)
-  if (embed) {
-    return (
-      <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
-        <iframe
-          src={embed}
-          title="Vista previa del vídeo del muro"
-          className="absolute inset-0 h-full w-full"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          loading="lazy"
-        />
-      </div>
-    )
-  }
-  if (/\.(mp4|webm)(\?.*)?$/i.test(url)) {
-    return (
-      <video
-        src={url}
-        controls
-        preload="metadata"
-        playsInline
-        className="w-full bg-black"
-        style={{ aspectRatio: "16 / 9" }}
-      />
-    )
-  }
-  return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noreferrer"
-      className="flex items-center gap-3 px-4 py-4 text-sm font-medium text-gold-bright transition-colors hover:text-gold"
-    >
-      <PlayCircle className="h-5 w-5 shrink-0" aria-hidden />
-      <span className="truncate">{url}</span>
-    </a>
-  )
-}
-
-// ============================================================
-// Sección 1 — Vídeo del Muro
+// Sección 1 — Vídeo del Muro (subida de archivo real)
 // ============================================================
 
 function MuroVideoSection({ value }: { value: string }) {
   const queryClient = useQueryClient()
-  const [url, setUrl] = useState(value)
-
-  useEffect(() => {
-    setUrl(value)
-  }, [value])
 
   const saveMutation = useMutation({
     mutationFn: (v: string) =>
@@ -167,14 +100,27 @@ function MuroVideoSection({ value }: { value: string }) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["admin-settings"] })
       void queryClient.invalidateQueries({ queryKey: ["muro-video"] })
-      toast.success("Vídeo del muro actualizado")
+      toast.success("Vídeo del muro actualizado: ya lo ve todo el gremio")
     },
     onError: (err: Error) => toast.error(err.message),
   })
 
   const removeMutation = useMutation({
-    mutationFn: () =>
-      adminFetch<{ ok: boolean }>("/api/admin/settings?key=muro_video", { method: "DELETE" }),
+    mutationFn: async () => {
+      // 1) Borrar el archivo subido (si el valor actual es interno)
+      const key = mediaKeyFromUrl(value)
+      if (key) {
+        try {
+          await adminFetch<{ ok: boolean }>(`/api/admin/media?key=${encodeURIComponent(key)}`, {
+            method: "DELETE",
+          })
+        } catch {
+          // El ajuste se quita igualmente aunque falle el borrado
+        }
+      }
+      // 2) Quitar el ajuste del muro
+      return adminFetch<{ ok: boolean }>("/api/admin/settings?key=muro_video", { method: "DELETE" })
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["admin-settings"] })
       void queryClient.invalidateQueries({ queryKey: ["muro-video"] })
@@ -183,16 +129,7 @@ function MuroVideoSection({ value }: { value: string }) {
     onError: (err: Error) => toast.error(err.message),
   })
 
-  function save() {
-    const v = url.trim()
-    if (!/^https?:\/\//i.test(v)) {
-      toast.error("La URL del vídeo debe empezar por http:// o https://")
-      return
-    }
-    saveMutation.mutate(v)
-  }
-
-  const trimmed = url.trim()
+  const saving = saveMutation.isPending || removeMutation.isPending
 
   return (
     <Card className="gap-0 rounded-2xl p-4 sm:p-5">
@@ -201,63 +138,24 @@ function MuroVideoSection({ value }: { value: string }) {
         <h3 className="font-display text-base font-semibold text-zinc-100">Vídeo del Muro</h3>
       </div>
       <p className="mt-1.5 text-xs leading-relaxed text-zinc-500">
-        Sube un vídeo que verá todo el gremio entre el título del Muro y la caja de publicar.
-        Acepta enlaces de YouTube o MP4 directo.
+        Sube un vídeo desde tu teléfono o PC y lo verá todo el gremio entre el título del Muro y
+        la caja de publicar. Es subir el archivo directamente — sin enlaces.
       </p>
 
       <div className="mt-4">
-        <Label htmlFor="muro-video-url">URL del vídeo</Label>
-        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-          <Input
-            id="muro-video-url"
-            placeholder="https://youtube.com/watch?v=… o https://…/video.mp4"
-            className="border-zinc-800 bg-zinc-950/70"
-            maxLength={2000}
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-          />
-          <div className="flex shrink-0 gap-2">
-            <Button
-              type="button"
-              className="btn-gold font-semibold"
-              disabled={saveMutation.isPending}
-              onClick={save}
-            >
-              {saveMutation.isPending ? (
-                <Loader2 className="animate-spin" aria-hidden />
-              ) : null}
-              Guardar
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="border-zinc-700"
-              disabled={removeMutation.isPending || !value}
-              onClick={() => removeMutation.mutate()}
-            >
-              {removeMutation.isPending ? (
-                <Loader2 className="animate-spin" aria-hidden />
-              ) : (
-                <Trash2 aria-hidden />
-              )}
-              Quitar vídeo
-            </Button>
-          </div>
-        </div>
+        <VideoUploadField
+          scope="muro"
+          value={value}
+          onUploaded={(url) => saveMutation.mutate(url)}
+          onRemoved={() => removeMutation.mutate()}
+          disabled={saving}
+        />
       </div>
 
-      {trimmed ? (
-        <div className="mt-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-            Vista previa
-          </p>
-          <div className="mt-2 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
-            <VideoPreview url={trimmed} />
-          </div>
-        </div>
-      ) : (
-        <p className="mt-4 rounded-xl border border-dashed border-zinc-800 px-4 py-6 text-center text-xs text-zinc-500">
-          Todavía no hay vídeo configurado para el Muro.
+      {saveMutation.isPending && (
+        <p className="mt-3 flex items-center gap-2 text-xs text-gold-bright">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+          Guardando el vídeo del muro…
         </p>
       )}
     </Card>

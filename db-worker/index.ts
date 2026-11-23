@@ -227,6 +227,68 @@ CREATE TABLE IF NOT EXISTS "Setting" (
 );
 `
 
+// v6 — MEDIOS (vídeos subidos por el titular: muro y lecciones).
+// Los archivos se guardan troceados en blobs de 1 MiB para respetar
+// los límites de SQLite en Durable Objects. Idempotente.
+const MIGRATION_V6_MEDIA_SQL = `
+CREATE TABLE IF NOT EXISTS "MediaMeta" (
+    "key" TEXT NOT NULL PRIMARY KEY,
+    "contentType" TEXT NOT NULL DEFAULT 'video/mp4',
+    "size" INTEGER NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS "MediaChunk" (
+    "key" TEXT NOT NULL,
+    "idx" INTEGER NOT NULL,
+    "data" BLOB NOT NULL,
+    PRIMARY KEY ("key", "idx")
+);
+`
+
+// ============================================================
+// Medios — constantes y helpers
+// ============================================================
+
+/** Tamaño de cada trozo almacenado en SQLite (1 MiB). */
+const MEDIA_CHUNK = 1_048_576
+/** Tope por archivo (el límite de subida de Cloudflare son 100 MB). */
+const MAX_MEDIA_BYTES = 95 * 1024 * 1024
+/** Claves válidas: muro/muro-video.{mp4|webm|mov} o lessons/{id}.{ext} */
+const MEDIA_KEY_RE = /^(muro\/muro-video|lessons\/[a-z0-9-]{6,64})\.(mp4|webm|mov)$/
+
+function mediaKeyOk(key: string): boolean {
+  return MEDIA_KEY_RE.test(key)
+}
+
+function contentTypeFor(key: string): string {
+  if (key.endsWith(".webm")) return "video/webm"
+  if (key.endsWith(".mov")) return "video/quicktime"
+  return "video/mp4"
+}
+
+type MediaRange = { start: number; end: number }
+
+/** Parsea una cabecera Range de bytes. null = sin rango, "invalid" = 416. */
+function parseRangeHeader(header: string | null, size: number): MediaRange | null | "invalid" {
+  if (!header) return null
+  const m = /^bytes=(\d*)-(\d*)$/.exec(header.trim())
+  if (!m || (m[1] === "" && m[2] === "")) return "invalid"
+  let start: number
+  let end: number
+  if (m[1] === "") {
+    const suffix = Number(m[2])
+    if (!Number.isFinite(suffix) || suffix <= 0) return "invalid"
+    start = Math.max(0, size - suffix)
+    end = size - 1
+  } else {
+    start = Number(m[1])
+    if (!Number.isFinite(start) || start < 0) return "invalid"
+    end = m[2] === "" ? size - 1 : Math.min(Number(m[2]), size - 1)
+  }
+  if (start > end || start >= size) return "invalid"
+  return { start, end }
+}
+
 export class HubDB extends DurableObject {
   private initialized = false
 
@@ -339,6 +401,168 @@ export class HubDB extends DurableObject {
     }
     // v5: EL GRIMORIO + AJUSTES (CREATE TABLE IF NOT EXISTS)
     execScript(this.sql, MIGRATION_V5_SQL)
+    // v6: MEDIOS (vídeos del titular troceados en blobs)
+    execScript(this.sql, MIGRATION_V6_MEDIA_SQL)
+  }
+
+  // ============================================================
+  // MEDIOS — PUT (subida troceada) · GET/HEAD (Range en streaming)
+  // · DELETE
+  // ============================================================
+  private async handleMedia(req: Request, url: URL): Promise<Response> {
+    const key = decodeURIComponent(url.pathname.slice("/media/".length))
+    if (!mediaKeyOk(key)) return json({ ok: false, error: "invalid-key" }, 400)
+
+    // ---------- DELETE ----------
+    if (req.method === "DELETE") {
+      this.sql.exec("DELETE FROM MediaChunk WHERE key = ?", key)
+      this.sql.exec("DELETE FROM MediaMeta WHERE key = ?", key)
+      return json({ ok: true, key })
+    }
+
+    // ---------- PUT (subida) ----------
+    if (req.method === "PUT") {
+      const contentType = contentTypeFor(key)
+      const declared = Number(req.headers.get("content-length") ?? "0")
+      if (declared > MAX_MEDIA_BYTES) {
+        return json({ ok: false, error: "too-large" }, 413)
+      }
+      if (!req.body) return json({ ok: false, error: "empty-body" }, 400)
+
+      // Limpiar la versión previa (y, en el muro, cualquier extensión hermana)
+      this.sql.exec("DELETE FROM MediaChunk WHERE key = ?", key)
+      this.sql.exec("DELETE FROM MediaMeta WHERE key = ?", key)
+      if (key.startsWith("muro/")) {
+        this.sql.exec("DELETE FROM MediaChunk WHERE key LIKE 'muro/%'")
+        this.sql.exec("DELETE FROM MediaMeta WHERE key LIKE 'muro/%'")
+      }
+
+      const cleanup = () => {
+        this.sql.exec("DELETE FROM MediaChunk WHERE key = ?", key)
+        this.sql.exec("DELETE FROM MediaMeta WHERE key = ?", key)
+      }
+
+      try {
+        const reader = req.body.getReader()
+        let total = 0
+        let idx = 0
+        let buf = new Uint8Array(MEDIA_CHUNK)
+        let bufLen = 0
+
+        const flush = (final: Uint8Array) => {
+          this.sql.exec(
+            "INSERT INTO MediaChunk (key, idx, data) VALUES (?, ?, ?)",
+            key,
+            idx,
+            final
+          )
+          idx++
+        }
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          if (!value || value.byteLength === 0) continue
+          total += value.byteLength
+          if (total > MAX_MEDIA_BYTES) throw new Error("too-large")
+          let srcOff = 0
+          while (srcOff < value.byteLength) {
+            const copy = Math.min(buf.length - bufLen, value.byteLength - srcOff)
+            buf.set(value.subarray(srcOff, srcOff + copy), bufLen)
+            bufLen += copy
+            srcOff += copy
+            if (bufLen === buf.length) {
+              flush(buf.slice())
+              buf = new Uint8Array(MEDIA_CHUNK)
+              bufLen = 0
+            }
+          }
+        }
+        if (bufLen > 0) flush(buf.slice(0, bufLen))
+        if (total === 0) throw new Error("empty")
+
+        this.sql.exec(
+          "INSERT INTO MediaMeta (key, contentType, size) VALUES (?, ?, ?)",
+          key,
+          contentType,
+          total
+        )
+        return json({ ok: true, key, bytes: total, chunks: idx })
+      } catch (e) {
+        cleanup()
+        const msg = e instanceof Error ? e.message : String(e)
+        if (msg === "too-large") return json({ ok: false, error: "too-large" }, 413)
+        return json({ ok: false, error: `upload-failed: ${msg}` }, 500)
+      }
+    }
+
+    // ---------- GET / HEAD ----------
+    if (req.method === "GET" || req.method === "HEAD") {
+      const metaRow = this.sql
+        .exec("SELECT size FROM MediaMeta WHERE key = ?", key)
+        .toArray()[0] as { size: number } | undefined
+      if (!metaRow) return json({ ok: false, error: "not-found" }, 404)
+
+      const size = metaRow.size
+      const range = parseRangeHeader(req.headers.get("range"), size)
+      if (range === "invalid") {
+        return new Response(null, {
+          status: 416,
+          headers: {
+            "content-range": `bytes */${size}`,
+            "accept-ranges": "bytes",
+          },
+        })
+      }
+      const start = range ? range.start : 0
+      const end = range ? range.end : size - 1
+      const length = end - start + 1
+
+      const headers: Record<string, string> = {
+        "content-type": contentTypeFor(key),
+        "accept-ranges": "bytes",
+        "content-length": String(length),
+        "cache-control": "private, max-age=3600",
+      }
+      if (range) headers["content-range"] = `bytes ${start}-${end}/${size}`
+      const status = range ? 206 : 200
+
+      if (req.method === "HEAD") {
+        return new Response(null, { status, headers })
+      }
+
+      // Streaming perezoso: un trozo por pull del ReadableStream
+      const firstIdx = Math.floor(start / MEDIA_CHUNK)
+      const lastIdx = Math.floor(end / MEDIA_CHUNK)
+      let nextIdx = firstIdx
+      const stream = new ReadableStream<Uint8Array>({
+        pull: (controller) => {
+          if (nextIdx > lastIdx) {
+            controller.close()
+            return
+          }
+          const chunkIdx = nextIdx
+          const chunkOffset = chunkIdx * MEDIA_CHUNK
+          const row = this.sql
+            .exec("SELECT data FROM MediaChunk WHERE key = ? AND idx = ?", key, chunkIdx)
+            .toArray()[0] as { data: ArrayBuffer | Uint8Array } | undefined
+          if (!row) {
+            controller.error(new Error("missing-chunk"))
+            return
+          }
+          const bytes =
+            row.data instanceof Uint8Array ? row.data : new Uint8Array(row.data)
+          nextIdx++
+          const from = Math.max(0, start - chunkOffset)
+          const to = Math.min(bytes.length, end - chunkOffset + 1)
+          const slice = bytes.subarray(from, to)
+          if (slice.byteLength > 0) controller.enqueue(slice)
+        },
+      })
+      return new Response(stream, { status, headers })
+    }
+
+    return json({ ok: false, error: "method-not-allowed" }, 405)
   }
 
   async fetch(req: Request): Promise<Response> {
@@ -347,6 +571,17 @@ export class HubDB extends DurableObject {
     if (url.pathname === "/health") {
       this.ensureInit()
       return json({ ok: true, db: "alqemia-hub" })
+    }
+
+    // ============================================================
+    // MEDIOS — subida/descarga/borrado de vídeos del titular
+    // (solo alcanzable vía service binding desde el worker principal;
+    // la entrada pública del worker NO enruta /media salvo que haya
+    // DB_ADMIN_KEY configurada y coincida la cabecera x-db-key).
+    // ============================================================
+    if (url.pathname.startsWith("/media/")) {
+      this.ensureInit()
+      return this.handleMedia(req, url)
     }
 
     if (url.pathname === "/admin/reseed" && req.method === "POST") {
@@ -419,11 +654,26 @@ export class HubDB extends DurableObject {
 
 /** Enrutador público del worker alqemia-db. Solo /health y /admin/reseed
  *  (protegido por DB_ADMIN_KEY) quedan expuestos: el worker principal
- *  (alqemiahub) habla con el DO de forma interna mediante el binding. */
+ *  (alqemiahub) habla con el DO de forma interna mediante el binding.
+ *  /media solo se expone si DB_ADMIN_KEY está configurada (desarrollo
+ *  local con wrangler dev) y exige la cabecera x-db-key correcta. */
 const workerEntry: ExportedHandler<Env> = {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url)
     if (url.pathname === "/health" || url.pathname === "/admin/reseed") {
+      const id = env.HUB_DB.idFromName("primary")
+      const stub = env.HUB_DB.get(id)
+      return stub.fetch(req)
+    }
+    if (url.pathname.startsWith("/media/")) {
+      const expected = env.DB_ADMIN_KEY
+      // Sin clave configurada (producción) → inaccesible desde fuera
+      if (!expected || req.headers.get("x-db-key") !== expected) {
+        return new Response(JSON.stringify({ ok: false, error: "forbidden" }), {
+          status: 403,
+          headers: { "content-type": "application/json" },
+        })
+      }
       const id = env.HUB_DB.idFromName("primary")
       const stub = env.HUB_DB.get(id)
       return stub.fetch(req)

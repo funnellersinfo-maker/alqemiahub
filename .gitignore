@@ -69,3 +69,4 @@ server.log
 .env
 *.secret*
 tool-results/
+.data/

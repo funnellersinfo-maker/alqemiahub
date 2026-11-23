@@ -63,6 +63,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { EmptyState } from "@/components/alqemia/empty-state"
 import { adminFetch, isLockedError } from "@/components/alqemia/admin/admin-fetch"
+import { VideoUploadField, mediaKeyFromUrl } from "@/components/alqemia/admin/video-upload"
 
 // ============================================================
 // Tipos y constantes
@@ -240,6 +241,15 @@ function LessonDialog({ courseId, lesson }: { courseId: string; lesson?: AdminLe
       void queryClient.invalidateQueries({ queryKey: ["admin-courses"] })
       toast.success(isEdit ? "Lección actualizada" : "Lección añadida")
       setOpen(false)
+      // Si se sustituyó un vídeo subido anteriormente, borrar el archivo viejo
+      const oldUrl = lesson?.videoUrl ?? ""
+      const newUrl = videoUrl.trim()
+      const oldKey = mediaKeyFromUrl(oldUrl)
+      if (oldKey && oldUrl !== newUrl) {
+        void adminFetch<{ ok: boolean }>(`/api/admin/media?key=${encodeURIComponent(oldKey)}`, {
+          method: "DELETE",
+        }).catch(() => {})
+      }
     },
     onError: (err: Error) => toast.error(err.message),
   })
@@ -251,8 +261,8 @@ function LessonDialog({ courseId, lesson }: { courseId: string; lesson?: AdminLe
       return
     }
     const url = videoUrl.trim()
-    if (url && !/^https?:\/\//i.test(url)) {
-      toast.error("La URL del vídeo debe empezar por http:// o https://")
+    if (url && !/^https?:\/\//i.test(url) && !url.startsWith("/api/media/")) {
+      toast.error("Sube el archivo de vídeo con el botón de subir")
       return
     }
     const mins = Math.round(Number(duration))
@@ -320,16 +330,20 @@ function LessonDialog({ courseId, lesson }: { courseId: string; lesson?: AdminLe
             />
           </div>
           <div>
-            <Label htmlFor="lesson-video">Vídeo de la lección</Label>
-            <Input
-              id="lesson-video"
-              placeholder="https://youtube.com/watch?v=… o https://…/video.mp4"
-              className="mt-2 border-zinc-800 bg-zinc-950/70"
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-            />
+            <Label>Vídeo de la lección</Label>
+            <div className="mt-2">
+              <VideoUploadField
+                scope="lesson"
+                value={videoUrl}
+                onUploaded={(u) => setVideoUrl(u)}
+                onRemoved={() => setVideoUrl("")}
+                disabled={saveMutation.isPending}
+                compact
+              />
+            </div>
             <p className="mt-1.5 text-[11px] text-zinc-500">
-              YouTube, Vimeo o MP4 directo. Puedes dejarlo vacío y añadirlo más tarde.
+              Sube el archivo MP4 directamente (hasta 95 MB). Puedes dejarlo vacío y añadirlo más
+              tarde.
             </p>
           </div>
           <div>

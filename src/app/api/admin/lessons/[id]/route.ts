@@ -8,6 +8,7 @@ import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { isAdminRequest } from "@/lib/admin"
 import { errorResponse, handleApiError, ApiError } from "@/lib/api-helpers"
+import { MEDIA_KEY_RE, deleteMedia } from "@/lib/media-store"
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -36,8 +37,8 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       if (videoUrl === "") {
         data.videoUrl = null
       } else {
-        if (!/^https?:\/\//i.test(videoUrl)) {
-          return errorResponse(400, "La URL del vídeo debe empezar por http:// o https://")
+        if (!/^https?:\/\//i.test(videoUrl) && !/^\/api\/media\/[A-Za-z0-9._/-]+$/.test(videoUrl)) {
+          return errorResponse(400, "Vídeo inválido: sube el archivo con el botón de subir")
         }
         if (videoUrl.length > 1000) return errorResponse(400, "URL demasiado larga")
         data.videoUrl = videoUrl
@@ -67,6 +68,12 @@ export async function DELETE(req: NextRequest, ctx: Ctx) {
     if (!lesson) return errorResponse(404, "Lección no encontrada")
 
     await db.lesson.delete({ where: { id } })
+
+    // Borrar también el archivo de vídeo subido (si era interno)
+    if (lesson.videoUrl?.startsWith("/api/media/")) {
+      const key = lesson.videoUrl.slice("/api/media/".length)
+      if (MEDIA_KEY_RE.test(key)) await deleteMedia(key).catch(() => {})
+    }
     return Response.json({ ok: true })
   } catch (e) {
     return handleApiError(e)

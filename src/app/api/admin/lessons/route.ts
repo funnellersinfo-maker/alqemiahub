@@ -24,8 +24,8 @@ export async function POST(req: NextRequest) {
     }
     const description = typeof body.description === "string" ? body.description.trim().slice(0, 1000) : ""
     const videoUrl = typeof body.videoUrl === "string" && body.videoUrl.trim() ? body.videoUrl.trim() : null
-    if (videoUrl && !/^https?:\/\//i.test(videoUrl)) {
-      return errorResponse(400, "La URL del vídeo debe empezar por http:// o https://")
+    if (videoUrl && !/^https?:\/\//i.test(videoUrl) && !/^\/api\/media\/[A-Za-z0-9._/-]+$/.test(videoUrl)) {
+      return errorResponse(400, "Vídeo inválido: sube el archivo con el botón de subir")
     }
     if (videoUrl && videoUrl.length > 1000) return errorResponse(400, "URL demasiado larga")
     const durationMin =

@@ -8,6 +8,7 @@ import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { isAdminRequest } from "@/lib/admin"
 import { errorResponse, handleApiError, ApiError } from "@/lib/api-helpers"
+import { MEDIA_KEY_RE, deleteMedia } from "@/lib/media-store"
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -64,7 +65,18 @@ export async function DELETE(req: NextRequest, ctx: Ctx) {
     if (!course) return errorResponse(404, "Programa no encontrado")
 
     // cascade borra lecciones y progreso de los miembros
+    // (antes recogemos los vídeos subidos para limpiar el almacén)
+    const lessons = await db.lesson.findMany({
+      where: { courseId: id },
+      select: { videoUrl: true },
+    })
     await db.course.delete({ where: { id } })
+    for (const l of lessons) {
+      if (l.videoUrl?.startsWith("/api/media/")) {
+        const key = l.videoUrl.slice("/api/media/".length)
+        if (MEDIA_KEY_RE.test(key)) await deleteMedia(key).catch(() => {})
+      }
+    }
     return Response.json({ ok: true })
   } catch (e) {
     return handleApiError(e)

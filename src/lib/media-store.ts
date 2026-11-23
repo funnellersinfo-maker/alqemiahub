@@ -1,0 +1,226 @@
+// ============================================================
+// MEDIA STORE — Almacenamiento de vídeos del titular (muro y
+// lecciones) multi-entorno:
+//   · Cloudflare (producción): Durable Object alqemia-db vía
+//     service binding (tabla MediaChunk en blobs de 1 MiB,
+//     streaming con soporte Range).
+//   · Local / sandbox: archivos en disco (.data/media).
+// ============================================================
+
+import { getCloudflareContext } from "@opennextjs/cloudflare"
+
+/** Tope por archivo (el límite de subida de Cloudflare son 100 MB). */
+export const MAX_MEDIA_BYTES = 95 * 1024 * 1024
+/** Claves válidas: muro/muro-video.{mp4|webm|mov} o lessons/{id}.{ext} */
+export const MEDIA_KEY_RE = /^(muro\/muro-video|lessons\/[a-z0-9-]{6,64})\.(mp4|webm|mov)$/
+
+/** URL pública con la que se sirve un medio (ruta de la app). */
+export const mediaUrl = (key: string) => `/api/media/${key}`
+
+// ------------------------------------------------------------
+// Namespace del Durable Object (mismo patrón que db.ts)
+// ------------------------------------------------------------
+
+type MediaStub = { fetch: (input: string, init?: RequestInit) => Promise<Response> }
+type MediaNamespace = {
+  idFromName: (name: string) => unknown
+  get: (id: unknown) => MediaStub
+}
+
+function getMediaNamespace(): MediaNamespace | null {
+  const manual = (globalThis as unknown as { __ALQEMIA_CF_ENV__?: { HUB_DB?: MediaNamespace } })
+    .__ALQEMIA_CF_ENV__?.HUB_DB
+  if (manual) return manual
+  try {
+    const ctx = getCloudflareContext() as { env?: { HUB_DB?: MediaNamespace } } | null
+    if (ctx?.env?.HUB_DB) return ctx.env.HUB_DB
+  } catch {
+    // Sin contexto de Cloudflare (desarrollo local / build)
+  }
+  return null
+}
+
+function mediaDoFetch(key: string, init?: RequestInit): Promise<Response> {
+  const ns = getMediaNamespace()
+  if (!ns) throw new Error("no-media-namespace")
+  const stub = ns.get(ns.idFromName("primary"))
+  return stub.fetch(`https://hub-db/media/${key}`, init)
+}
+
+// ------------------------------------------------------------
+// Desarrollo local — archivos en disco
+// ------------------------------------------------------------
+
+async function localMediaPath(key: string): Promise<string> {
+  const { join } = await import("node:path")
+  return join(process.cwd(), ".data", "media", ...key.split("/"))
+}
+
+/** Parsea una cabecera Range de bytes. null = sin rango, "invalid" = 416. */
+function parseRangeHeader(
+  header: string | null,
+  size: number
+): { start: number; end: number } | null | "invalid" {
+  if (!header) return null
+  const m = /^bytes=(\d*)-(\d*)$/.exec(header.trim())
+  if (!m || (m[1] === "" && m[2] === "")) return "invalid"
+  let start: number
+  let end: number
+  if (m[1] === "") {
+    const suffix = Number(m[2])
+    if (!Number.isFinite(suffix) || suffix <= 0) return "invalid"
+    start = Math.max(0, size - suffix)
+    end = size - 1
+  } else {
+    start = Number(m[1])
+    if (!Number.isFinite(start) || start < 0) return "invalid"
+    end = m[2] === "" ? size - 1 : Math.min(Number(m[2]), size - 1)
+  }
+  if (start > end || start >= size) return "invalid"
+  return { start, end }
+}
+
+function contentTypeForKey(key: string): string {
+  if (key.endsWith(".webm")) return "video/webm"
+  if (key.endsWith(".mov")) return "video/quicktime"
+  return "video/mp4"
+}
+
+// ------------------------------------------------------------
+// API pública del almacén
+// ------------------------------------------------------------
+
+/**
+ * Guarda un vídeo (streaming, sin buffer completo en memoria).
+ * Lanza Error("too-large") si supera el tope.
+ */
+export async function putMedia(
+  key: string,
+  contentType: string,
+  body: ReadableStream<Uint8Array>,
+  contentLength: number
+): Promise<void> {
+  const ns = getMediaNamespace()
+  if (ns) {
+    const res = await mediaDoFetch(key, {
+      method: "PUT",
+      headers: {
+        "content-type": contentType,
+        "content-length": String(contentLength),
+      },
+      body,
+    })
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      throw new Error(data.error ?? `media-put-${res.status}`)
+    }
+    return
+  }
+
+  // ---------- Desarrollo: archivo local ----------
+  const { createWriteStream } = await import("node:fs")
+  const { mkdir, unlink } = await import("node:fs/promises")
+  const { Readable } = await import("node:stream")
+  const { dirname } = await import("node:path")
+  const filePath = await localMediaPath(key)
+  await mkdir(dirname(filePath), { recursive: true })
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      let total = 0
+      let settled = false
+      const fail = (err: Error) => {
+        if (settled) return
+        settled = true
+        reject(err)
+      }
+      const nodeStream = Readable.fromWeb(body as unknown as import("node:stream/web").ReadableStream)
+      const out = createWriteStream(filePath)
+      nodeStream.on("data", (c: Buffer) => {
+        total += c.length
+        if (total > MAX_MEDIA_BYTES) {
+          nodeStream.destroy()
+          out.destroy()
+          fail(new Error("too-large"))
+        }
+      })
+      nodeStream.on("error", fail)
+      out.on("error", fail)
+      out.on("finish", () => {
+        if (!settled) {
+          settled = true
+          resolve()
+        }
+      })
+      nodeStream.pipe(out)
+    })
+  } catch (e) {
+    await unlink(filePath).catch(() => {})
+    throw e
+  }
+}
+
+/**
+ * Responde un medio con soporte de Range (200 / 206 / 404 / 416).
+ * La respuesta se transmite en streaming (nunca se buferea entera).
+ */
+export async function getMediaResponse(key: string, rangeHeader: string | null): Promise<Response> {
+  const ns = getMediaNamespace()
+  if (ns) {
+    const headers: Record<string, string> = {}
+    if (rangeHeader) headers.range = rangeHeader
+    return mediaDoFetch(key, { headers })
+  }
+
+  // ---------- Desarrollo: archivo local ----------
+  const { createReadStream } = await import("node:fs")
+  const { stat } = await import("node:fs/promises")
+  const { Readable } = await import("node:stream")
+  const filePath = await localMediaPath(key)
+
+  let size: number
+  try {
+    size = (await stat(filePath)).size
+  } catch {
+    return new Response("Not found", { status: 404 })
+  }
+
+  const range = parseRangeHeader(rangeHeader, size)
+  if (range === "invalid") {
+    return new Response(null, {
+      status: 416,
+      headers: {
+        "content-range": `bytes */${size}`,
+        "accept-ranges": "bytes",
+      },
+    })
+  }
+
+  const start = range ? range.start : 0
+  const end = range ? range.end : size - 1
+  const headers: Record<string, string> = {
+    "content-type": contentTypeForKey(key),
+    "accept-ranges": "bytes",
+    "content-length": String(end - start + 1),
+    "cache-control": "private, max-age=3600",
+  }
+  if (range) headers["content-range"] = `bytes ${start}-${end}/${size}`
+
+  const nodeStream = createReadStream(filePath, { start, end })
+  const stream = Readable.toWeb(nodeStream) as unknown as ReadableStream<Uint8Array>
+  return new Response(stream, { status: range ? 206 : 200, headers })
+}
+
+/** Elimina un medio (si existe). */
+export async function deleteMedia(key: string): Promise<void> {
+  const ns = getMediaNamespace()
+  if (ns) {
+    const res = await mediaDoFetch(key, { method: "DELETE" })
+    if (!res.ok && res.status !== 404) {
+      throw new Error(`media-delete-${res.status}`)
+    }
+    return
+  }
+  const { unlink } = await import("node:fs/promises")
+  await unlink(await localMediaPath(key)).catch(() => {})
+}
