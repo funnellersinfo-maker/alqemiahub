@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/alqemia/empty-state"
+import { SmartVideo } from "@/components/alqemia/smart-video"
 import type { FeedPost, FeedResponse } from "@/lib/types"
 import { AlqemiaLetters } from "@/components/alqemia/fx/alqemia-lettering"
 import { PostCard } from "./post-card"
@@ -58,21 +59,27 @@ function youtubeEmbed(url: string): string | null {
  * y aparece entre el título del muro y la caja de escribir.
  */
 function MuroVideo() {
-  const { data } = useQuery<{ key: string; value: string | null }>({
+  const { data } = useQuery<{ video: string | null; poster: string | null }>({
     queryKey: ["muro-video"],
     queryFn: async () => {
-      const res = await fetch("/api/settings?key=muro_video")
-      if (!res.ok) return { key: "muro_video", value: null }
-      return res.json() as Promise<{ key: string; value: string | null }>
+      const [v, p] = await Promise.all([
+        fetch("/api/settings?key=muro_video"),
+        fetch("/api/settings?key=muro_video_poster"),
+      ])
+      const video = v.ok ? ((await v.json()) as { value: string | null }).value : null
+      const poster = p.ok ? ((await p.json()) as { value: string | null }).value : null
+      return { video, poster }
     },
     staleTime: 60_000,
   })
 
-  const url = data?.value?.trim() ?? ""
+  const url = data?.video?.trim() ?? ""
+  const poster = data?.poster?.trim() ?? ""
   if (!url) return null
 
   const embed = youtubeEmbed(url)
-  const isDirectVideo = /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url)
+  const isDirectVideo =
+    url.startsWith("/api/media/") || /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url)
 
   return (
     <section
@@ -97,15 +104,7 @@ function MuroVideo() {
           />
         </div>
       ) : isDirectVideo ? (
-         
-        <video
-          src={url}
-          controls
-          preload="metadata"
-          playsInline
-          className="w-full bg-black"
-          style={{ aspectRatio: "16 / 9", maxHeight: "70vh" }}
-        />
+        <SmartVideo src={url} poster={poster || null} videoClassName="max-h-[70vh]" />
       ) : (
         <a
           href={url}

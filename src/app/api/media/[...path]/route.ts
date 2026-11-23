@@ -29,5 +29,12 @@ export async function GET(req: NextRequest, ctx: Ctx) {
 
 export async function HEAD(req: NextRequest, ctx: Ctx) {
   const res = await GET(req, ctx)
+  // Cancelar el cuerpo colgante del GET: sin esto el stream del Durable
+  // Object queda abierto sin consumir y puede bloquear la conexión.
+  try {
+    await res.body?.cancel()
+  } catch {
+    // ya cerrado
+  }
   return new Response(null, { status: res.status, headers: res.headers })
 }

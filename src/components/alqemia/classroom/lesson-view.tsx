@@ -16,10 +16,18 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { SmartVideo } from "@/components/alqemia/smart-video"
 import { celebrateXp } from "@/lib/store"
 import type { CourseDetail, XpEvent } from "@/lib/types"
 
 type CompleteResponse = { ok: boolean; xp: XpEvent | null }
+
+/** Enlaces heredados de YouTube → iframe de inserción. */
+function youtubeEmbed(url: string): string | null {
+  const m =
+    /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{6,})/i.exec(url)
+  return m ? `https://www.youtube.com/embed/${m[1]}` : null
+}
 
 export function LessonView({
   course,
@@ -79,13 +87,24 @@ export function LessonView({
       </Button>
 
       <Card className="gap-0 overflow-hidden rounded-2xl bg-zinc-950 p-0">
-        {lesson.videoUrl ? (
-          <video
-            controls
-            preload="metadata"
-            poster={course.cover}
+        {lesson.videoUrl && youtubeEmbed(lesson.videoUrl) ? (
+          <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
+            <iframe
+              src={youtubeEmbed(lesson.videoUrl) as string}
+              title={lesson.title}
+              className="absolute inset-0 h-full w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              loading="lazy"
+            />
+          </div>
+        ) : lesson.videoUrl ? (
+          <SmartVideo
+            // key por lección: garantiza un <video> limpio al navegar
+            // entre lecciones (evita el reproductor "pegado")
+            key={lesson.id}
             src={lesson.videoUrl}
-            className="aspect-video w-full bg-zinc-950"
+            poster={lesson.poster ?? course.cover}
           />
         ) : (
           <div className="flex aspect-video items-center justify-center bg-zinc-950 text-sm text-zinc-500">

@@ -63,7 +63,11 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { EmptyState } from "@/components/alqemia/empty-state"
 import { adminFetch, isLockedError } from "@/components/alqemia/admin/admin-fetch"
-import { VideoUploadField, mediaKeyFromUrl } from "@/components/alqemia/admin/video-upload"
+import {
+  PosterUploadField,
+  VideoUploadField,
+  mediaKeyFromUrl,
+} from "@/components/alqemia/admin/video-upload"
 
 // ============================================================
 // Tipos y constantes
@@ -78,6 +82,7 @@ type AdminLesson = {
   title: string
   description: string
   videoUrl: string | null
+  poster: string | null
   durationMin: number
   order: number
 }
@@ -208,6 +213,7 @@ function LessonDialog({ courseId, lesson }: { courseId: string; lesson?: AdminLe
   const [title, setTitle] = useState(lesson?.title ?? "")
   const [description, setDescription] = useState(lesson?.description ?? "")
   const [videoUrl, setVideoUrl] = useState(lesson?.videoUrl ?? "")
+  const [poster, setPoster] = useState(lesson?.poster ?? "")
   const [duration, setDuration] = useState(String(lesson?.durationMin ?? 10))
   const isEdit = Boolean(lesson)
 
@@ -215,6 +221,7 @@ function LessonDialog({ courseId, lesson }: { courseId: string; lesson?: AdminLe
     setTitle(lesson?.title ?? "")
     setDescription(lesson?.description ?? "")
     setVideoUrl(lesson?.videoUrl ?? "")
+    setPoster(lesson?.poster ?? "")
     setDuration(String(lesson?.durationMin ?? 10))
   }
 
@@ -224,6 +231,7 @@ function LessonDialog({ courseId, lesson }: { courseId: string; lesson?: AdminLe
         title: title.trim(),
         description: description.trim(),
         videoUrl: videoUrl.trim() || null,
+        poster: poster.trim() || null,
         durationMin: Math.round(Number(duration) || 10),
       }
       if (lesson) {
@@ -335,16 +343,22 @@ function LessonDialog({ courseId, lesson }: { courseId: string; lesson?: AdminLe
               <VideoUploadField
                 scope="lesson"
                 value={videoUrl}
+                poster={poster}
                 onUploaded={(u) => setVideoUrl(u)}
                 onRemoved={() => setVideoUrl("")}
                 disabled={saveMutation.isPending}
                 compact
               />
             </div>
-            <p className="mt-1.5 text-[11px] text-zinc-500">
-              Sube el archivo MP4 directamente (hasta 95 MB). Puedes dejarlo vacío y añadirlo más
-              tarde.
-            </p>
+          </div>
+          <div>
+            <PosterUploadField
+              value={poster}
+              onUploaded={(p) => setPoster(p)}
+              onRemoved={() => setPoster("")}
+              disabled={saveMutation.isPending}
+              label="Portada del vídeo (opcional)"
+            />
           </div>
           <div>
             <Label htmlFor="lesson-duration">Duración (minutos)</Label>
@@ -413,9 +427,25 @@ function LessonRow({
   })
 
   return (
-    <li className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-950/60 p-2.5">
-      <span className="w-6 shrink-0 text-center text-xs font-semibold text-zinc-500">
-        {index + 1}
+    <li className="flex items-center gap-2.5 rounded-xl border border-zinc-800 bg-zinc-950/60 p-2.5">
+      {/* Miniatura estilo YouTube Studio: portada propia o marcador */}
+      <span className="relative block w-20 shrink-0 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 sm:w-24">
+        <span className="block aspect-video">
+          {lesson.poster ? (
+            <img
+              src={lesson.poster}
+              alt={`Portada de ${lesson.title}`}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center bg-zinc-900/80">
+              <VideoOff className="h-4 w-4 text-zinc-600" aria-hidden />
+            </span>
+          )}
+        </span>
+        <span className="absolute bottom-0 left-0 bg-black/70 px-1 text-[10px] font-bold text-gold-bright">
+          {index + 1}
+        </span>
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium text-zinc-100">{lesson.title}</span>

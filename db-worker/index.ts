@@ -403,6 +403,13 @@ export class HubDB extends DurableObject {
     execScript(this.sql, MIGRATION_V5_SQL)
     // v6: MEDIOS (vídeos del titular troceados en blobs)
     execScript(this.sql, MIGRATION_V6_MEDIA_SQL)
+    // v7: PORTADA (poster) propia de cada vídeo de lección. Idempotente:
+    // si la columna ya existe, el ALTER falla y no se toca nada.
+    try {
+      this.sql.exec('ALTER TABLE "Lesson" ADD COLUMN "poster" TEXT')
+    } catch {
+      // la columna ya existe
+    }
   }
 
   // ============================================================
@@ -522,7 +529,11 @@ export class HubDB extends DurableObject {
         "content-type": contentTypeFor(key),
         "accept-ranges": "bytes",
         "content-length": String(length),
-        "cache-control": "private, max-age=3600",
+        // CRÍTICO: el contenido parcial (206) JAMÁS se cachea — si el
+        // navegador guarda un 206 y luego lo reutiliza para otro rango,
+        // el vídeo se queda "pegado" y no vuelve a reproducirse. El 200
+        // completo sí puede reutilizarse de la caché durante una hora.
+        "cache-control": range ? "private, no-store" : "private, max-age=3600",
       }
       if (range) headers["content-range"] = `bytes ${start}-${end}/${size}`
       const status = range ? 206 : 200
@@ -559,7 +570,21 @@ export class HubDB extends DurableObject {
           if (slice.byteLength > 0) controller.enqueue(slice)
         },
       })
-      return new Response(stream, { status, headers })
+
+      // CRÍTICO: workerd descarta Content-Length cuando el cuerpo es un
+      // stream de longitud desconocida. Sin ese encabezado la caché
+      // multimedia del navegador se degrada (reproducción "pegada").
+      // FixedLengthStream declara el tamaño exacto → el encabezado
+      // sobrevive hasta el cliente a través del worker y el portal.
+      let body: ReadableStream<Uint8Array> = stream
+      try {
+        const fls = new FixedLengthStream(length)
+        void stream.pipeTo(fls.writable).catch(() => {})
+        body = fls.readable
+      } catch {
+        // sin FixedLengthStream → stream directo (content-length cae)
+      }
+      return new Response(body, { status, headers })
     }
 
     return json({ ok: false, error: "method-not-allowed" }, 405)

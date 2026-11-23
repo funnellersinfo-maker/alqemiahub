@@ -47,6 +47,21 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     if (typeof body.durationMin === "number" && Number.isFinite(body.durationMin)) {
       data.durationMin = Math.max(1, Math.min(600, Math.round(body.durationMin)))
     }
+    // Portada del vídeo: null para quitarla, dataURL para ponerla
+    if (body.poster === null || typeof body.poster === "string") {
+      if (typeof body.poster === "string" && body.poster.trim()) {
+        const poster = body.poster.trim()
+        if (!poster.startsWith("data:image/")) {
+          return errorResponse(400, "Portada inválida (debe ser una imagen)")
+        }
+        if (poster.length > 500_000) {
+          return errorResponse(400, "La portada es demasiado grande (máx ~400 KB)")
+        }
+        data.poster = poster
+      } else {
+        data.poster = null
+      }
+    }
     if (typeof body.order === "number" && Number.isFinite(body.order)) {
       data.order = Math.max(0, Math.floor(body.order))
     }

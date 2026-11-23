@@ -32,7 +32,10 @@ function toSessionUser(user: {
     id: user.id,
     name: user.name,
     email: user.email,
-    image: user.image,
+    // NUNCA el dataURL del avatar: inflaba la cookie de sesión hasta
+    // ~16 KB (4 trozos) y lastraba TODAS las peticiones, incluidas las
+    // de streaming de vídeo. El avatar se lee de /api/me.
+    image: null,
     role: user.role,
     status: user.status,
     profileCompleted: user.profileCompleted,
@@ -66,6 +69,10 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET ?? "alqemia-hub-dev-secret",
   callbacks: {
     async jwt({ token, user }) {
+      // La foto del avatar (dataURL) NO viaja en el JWT: mantiene la
+      // cookie de sesión pequeña (< 1 KB). Se limpia también de los
+      // tokens antiguos para adelgazar las sesiones ya emitidas.
+      delete token.picture
       if (user) {
         // `user` llega desde authorize() con el id real de la BD
         const email = user.email?.toLowerCase().trim()

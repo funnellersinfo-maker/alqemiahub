@@ -9,7 +9,7 @@ import { db } from "@/lib/db"
 import { handleApiError } from "@/lib/api-helpers"
 
 // Claves que el cliente puede leer sin ser admin
-const PUBLIC_KEYS = new Set(["muro_video"])
+const PUBLIC_KEYS = new Set(["muro_video", "muro_video_poster"])
 
 export async function GET(req: NextRequest) {
   try {

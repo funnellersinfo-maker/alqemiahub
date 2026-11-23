@@ -48,6 +48,38 @@ function mediaDoFetch(key: string, init?: RequestInit): Promise<Response> {
 }
 
 // ------------------------------------------------------------
+// FixedLengthStream — global del runtime de Cloudflare Workers.
+// Al construir una Response con un stream de longitud desconocida,
+// el runtime DESCARTA el encabezado Content-Length. Sin él, la
+// caché multimedia del navegador no puede reutilizar respuestas y
+// la reproducción repetida del vídeo se rompe. FixedLengthStream
+// declara el tamaño exacto para que el encabezado se respete.
+// ------------------------------------------------------------
+
+type FixedLengthPair = {
+  readable: ReadableStream<Uint8Array>
+  writable: WritableStream<Uint8Array>
+}
+declare const FixedLengthStream: { new (expectedLength: number): FixedLengthPair }
+
+/** Envuelve la respuesta del DO para conservar su Content-Length real. */
+function withFixedLength(res: Response): Response {
+  const len = res.headers.get("content-length")
+  const n = len ? Number(len) : NaN
+  if (!res.body || !Number.isFinite(n) || n < 0) return res
+  if (typeof FixedLengthStream === "undefined") return res // dev local (Node)
+  try {
+    const fls = new FixedLengthStream(n)
+    void res.body.pipeTo(fls.writable).catch(() => {})
+    const out = new Response(fls.readable, res)
+    out.headers.set("content-length", len as string)
+    return out
+  } catch {
+    return res
+  }
+}
+
+// ------------------------------------------------------------
 // Desarrollo local — archivos en disco
 // ------------------------------------------------------------
 
@@ -169,7 +201,9 @@ export async function getMediaResponse(key: string, rangeHeader: string | null):
   if (ns) {
     const headers: Record<string, string> = {}
     if (rangeHeader) headers.range = rangeHeader
-    return mediaDoFetch(key, { headers })
+    // FixedLengthStream → el Content-Length sobrevive hasta el navegador
+    const res = await mediaDoFetch(key, { headers })
+    return withFixedLength(res)
   }
 
   // ---------- Desarrollo: archivo local ----------
@@ -202,7 +236,9 @@ export async function getMediaResponse(key: string, rangeHeader: string | null):
     "content-type": contentTypeForKey(key),
     "accept-ranges": "bytes",
     "content-length": String(end - start + 1),
-    "cache-control": "private, max-age=3600",
+    // El 206 parcial nunca se cachea (rompe la reproducción repetida);
+    // el 200 completo sí puede reutilizarse una hora.
+    "cache-control": range ? "private, no-store" : "private, max-age=3600",
   }
   if (range) headers["content-range"] = `bytes ${start}-${end}/${size}`
 

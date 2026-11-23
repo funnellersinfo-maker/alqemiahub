@@ -77,6 +77,7 @@ CREATE TABLE "Lesson" (
     "title" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "videoUrl" TEXT,
+    "poster" TEXT,
     "durationMin" INTEGER NOT NULL DEFAULT 10,
     "order" INTEGER NOT NULL DEFAULT 0,
     CONSTRAINT "Lesson_courseId_fkey" FOREIGN KEY ("courseId") REFERENCES "Course" ("id") ON DELETE CASCADE ON UPDATE CASCADE

@@ -9,9 +9,11 @@
 
 import { useRef, useState, type ChangeEvent } from "react"
 import { toast } from "sonner"
-import { FileVideo, Loader2, Trash2, UploadCloud } from "lucide-react"
+import { FileVideo, ImagePlus, Loader2, Trash2, UploadCloud } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { SmartVideo } from "@/components/alqemia/smart-video"
+import { compressImage, MAX_UPLOAD_BYTES } from "@/lib/image-utils"
 
 const MAX_MB = 95
 const ACCEPTED_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime"])
@@ -27,16 +29,13 @@ function isDirectVideoUrl(url: string): boolean {
 }
 
 /** Vista previa: <video> para archivos, iframe para YouTube heredado. */
-function MediaPreview({ url, title }: { url: string; title: string }) {
+function MediaPreview({ url, title, poster }: { url: string; title: string; poster?: string | null }) {
   if (isDirectVideoUrl(url)) {
     return (
-      <video
+      <SmartVideo
         src={url}
-        controls
-        preload="metadata"
-        playsInline
-        className="w-full bg-black"
-        style={{ aspectRatio: "16 / 9", maxHeight: "22rem" }}
+        poster={poster}
+        videoClassName="max-h-[22rem]"
       />
     )
   }
@@ -107,6 +106,7 @@ function uploadMediaFile(
 export function VideoUploadField({
   scope,
   value,
+  poster,
   onUploaded,
   onRemoved,
   disabled,
@@ -115,6 +115,8 @@ export function VideoUploadField({
   scope: "muro" | "lesson"
   /** URL actual (interna /api/media/…, o heredada externa) o "" */
   value: string
+  /** Portada actual del vídeo (dataURL o "") para la vista previa */
+  poster?: string | null
   /** Se llama con la URL interna cuando la subida termina */
   onUploaded: (url: string) => void
   /** Se llama al pulsar "Quitar vídeo" */
@@ -165,7 +167,7 @@ export function VideoUploadField({
       {value ? (
         <>
           <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
-            <MediaPreview url={value} title="Vista previa del vídeo" />
+            <MediaPreview url={value} title="Vista previa del vídeo" poster={poster || null} />
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
             <Button
@@ -191,6 +193,9 @@ export function VideoUploadField({
               Quitar vídeo
             </Button>
           </div>
+          <p className="mt-1.5 text-[11px] text-zinc-500">
+            Para HD fluido exporta en 1280×720 o 1920×1080 · hasta {MAX_MB} MB
+          </p>
         </>
       ) : (
         <button
@@ -209,6 +214,8 @@ export function VideoUploadField({
             Toca aquí y elige el archivo de tu teléfono o PC
             <br />
             MP4, WebM o MOV · hasta {MAX_MB} MB
+            <br />
+            <span className="text-gold-deep">Para HD fluido: exporta en 1280×720 o 1920×1080</span>
           </span>
         </button>
       )}
@@ -251,4 +258,129 @@ export function VideoUploadField({
 /** Extrae la clave de almacén de una URL interna (/api/media/…). */
 export function mediaKeyFromUrl(url: string): string {
   return url.startsWith("/api/media/") ? url.slice("/api/media/".length) : ""
+}
+
+// ============================================================
+// PORTADA DEL VÍDEO (imagen opcional que se ve antes de dar a
+// reproducir). Se recorta centrada a 16:9 y se comprime a JPEG.
+// ============================================================
+
+/** Límite ~400 KB tras comprimir (mismo tope que las portadas de programas). */
+const MAX_POSTER_BYTES = 400 * 1024
+
+export function PosterUploadField({
+  value,
+  onUploaded,
+  onRemoved,
+  disabled,
+  /** Etiqueta del campo */
+  label = "Portada del vídeo (opcional)",
+}: {
+  /** dataURL actual o "" */
+  value: string
+  onUploaded: (dataUrl: string) => void
+  onRemoved: () => void
+  disabled?: boolean
+  label?: string
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [processing, setProcessing] = useState(false)
+
+  async function onFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file) return
+    if (!file.type.startsWith("image/")) {
+      toast.error("Sube una imagen (JPG o PNG)")
+      return
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      toast.error("La imagen supera los 8 MB")
+      return
+    }
+    setProcessing(true)
+    try {
+      // Recorte centrado 16:9 + JPEG a ancho máx. 1280 (portada HD)
+      const dataUrl = await compressImage(file, { maxWidth: 1280, aspect: 16 / 9, quality: 0.82 })
+      const base64 = dataUrl.split(",")[1] ?? ""
+      if (Math.floor((base64.length * 3) / 4) > MAX_POSTER_BYTES) {
+        toast.error("La portada supera los 400 KB tras comprimirla. Prueba con una más ligera.")
+        return
+      }
+      onUploaded(dataUrl)
+      toast.success("Portada lista")
+    } catch {
+      toast.error("No se pudo procesar la imagen")
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-medium text-zinc-300">{label}</span>
+        {value ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300"
+            disabled={disabled || processing}
+            onClick={onRemoved}
+          >
+            <Trash2 className="h-3.5 w-3.5" aria-hidden /> Quitar
+          </Button>
+        ) : null}
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => void onFile(e)}
+        disabled={disabled || processing}
+      />
+
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={disabled || processing}
+        className="mt-2 block w-full overflow-hidden rounded-xl border border-dashed border-zinc-700 bg-zinc-950/40 transition-all hover:border-gold/50 hover:bg-gold/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50 disabled:opacity-60"
+        aria-label={label}
+      >
+        {value ? (
+          <span className="relative block aspect-video w-full">
+            <img
+              src={value}
+              alt="Vista previa de la portada del vídeo"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            {processing ? (
+              <span className="absolute inset-0 flex items-center justify-center bg-black/60">
+                <Loader2 className="h-5 w-5 animate-spin text-gold" aria-hidden />
+              </span>
+            ) : null}
+          </span>
+        ) : (
+          <span className="flex aspect-video w-full flex-col items-center justify-center gap-1.5 text-zinc-600">
+            {processing ? (
+              <Loader2 className="h-6 w-6 animate-spin text-gold" aria-hidden />
+            ) : (
+              <ImagePlus className="h-6 w-6" aria-hidden />
+            )}
+            <span className="text-xs font-medium text-zinc-400">
+              {processing ? "Procesando imagen…" : "Subir portada"}
+            </span>
+          </span>
+        )}
+      </button>
+
+      <p className="mt-1.5 text-[11px] leading-relaxed text-zinc-500">
+        Medidas recomendadas: <span className="text-zinc-400">1280 × 720 px (16:9)</span> · JPG o
+        PNG · se recorta y comprime automáticamente.
+      </p>
+    </div>
+  )
 }

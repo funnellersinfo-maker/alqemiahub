@@ -11,6 +11,9 @@ import { isAdminRequest } from "@/lib/admin"
 import { errorResponse, handleApiError, ApiError } from "@/lib/api-helpers"
 
 const MAX_VALUE = 2000 // caracteres por valor
+// Las portadas de vídeo (dataURL 16:9 ~400 KB) necesitan más espacio
+const POSTER_KEYS = new Set(["muro_video_poster"])
+const MAX_POSTER_VALUE = 500_000
 
 export async function GET(req: NextRequest) {
   try {
@@ -30,7 +33,17 @@ export async function PUT(req: NextRequest) {
     const value = typeof body.value === "string" ? body.value.trim() : ""
 
     if (!/^[\w.\-]{2,64}$/.test(key)) return errorResponse(400, "Clave inválida")
-    if (value.length > MAX_VALUE) return errorResponse(400, "El valor supera el máximo de 2000 caracteres")
+    if (POSTER_KEYS.has(key)) {
+      // Portada del vídeo del muro: dataURL de imagen comprimida en cliente
+      if (value && !value.startsWith("data:image/")) {
+        return errorResponse(400, "La portada debe ser una imagen")
+      }
+      if (value.length > MAX_POSTER_VALUE) {
+        return errorResponse(400, "La portada es demasiado grande (máx ~400 KB)")
+      }
+    } else if (value.length > MAX_VALUE) {
+      return errorResponse(400, "El valor supera el máximo de 2000 caracteres")
+    }
 
     await db.setting.upsert({
       where: { key },

@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
           title: l.title,
           description: l.description,
           videoUrl: l.videoUrl,
+          poster: l.poster,
           durationMin: l.durationMin,
           order: l.order,
         })),

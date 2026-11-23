@@ -138,6 +138,7 @@ export type LessonDTO = {
   title: string
   description: string
   videoUrl: string | null
+  poster: string | null
   durationMin: number
   order: number
   completed: boolean

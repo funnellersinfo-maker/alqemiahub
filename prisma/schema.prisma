@@ -286,6 +286,7 @@ model Lesson {
   title       String
   description String
   videoUrl    String?
+  poster      String? // dataURL 16:9 — portada propia del vídeo
   durationMin Int    @default(10)
   order       Int    @default(0)
 

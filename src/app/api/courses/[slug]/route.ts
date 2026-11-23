@@ -40,6 +40,7 @@ export async function GET(
         title: l.title,
         description: l.description,
         videoUrl: l.videoUrl,
+        poster: l.poster,
         durationMin: l.durationMin,
         order: l.order,
         completed: completedSet.has(l.id),

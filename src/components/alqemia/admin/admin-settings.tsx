@@ -34,7 +34,11 @@ import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/alqemia/empty-state"
 import { adminFetch, isLockedError } from "@/components/alqemia/admin/admin-fetch"
-import { VideoUploadField, mediaKeyFromUrl } from "@/components/alqemia/admin/video-upload"
+import {
+  PosterUploadField,
+  VideoUploadField,
+  mediaKeyFromUrl,
+} from "@/components/alqemia/admin/video-upload"
 
 type AdminSetting = { key: string; value: string; updatedAt: string }
 
@@ -88,7 +92,7 @@ function QueryErrorView({ error, onRetry }: { error: Error; onRetry: () => void 
 // Sección 1 — Vídeo del Muro (subida de archivo real)
 // ============================================================
 
-function MuroVideoSection({ value }: { value: string }) {
+function MuroVideoSection({ value, poster }: { value: string; poster: string }) {
   const queryClient = useQueryClient()
 
   const saveMutation = useMutation({
@@ -101,6 +105,20 @@ function MuroVideoSection({ value }: { value: string }) {
       void queryClient.invalidateQueries({ queryKey: ["admin-settings"] })
       void queryClient.invalidateQueries({ queryKey: ["muro-video"] })
       toast.success("Vídeo del muro actualizado: ya lo ve todo el gremio")
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  const savePosterMutation = useMutation({
+    mutationFn: (v: string) =>
+      adminFetch<{ ok: boolean }>("/api/admin/settings", {
+        method: "PUT",
+        body: JSON.stringify({ key: "muro_video_poster", value: v }),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin-settings"] })
+      void queryClient.invalidateQueries({ queryKey: ["muro-video"] })
+      toast.success("Portada del vídeo actualizada")
     },
     onError: (err: Error) => toast.error(err.message),
   })
@@ -146,11 +164,24 @@ function MuroVideoSection({ value }: { value: string }) {
         <VideoUploadField
           scope="muro"
           value={value}
+          poster={poster}
           onUploaded={(url) => saveMutation.mutate(url)}
           onRemoved={() => removeMutation.mutate()}
           disabled={saving}
         />
       </div>
+
+      {value ? (
+        <div className="mt-4">
+          <PosterUploadField
+            value={poster}
+            onUploaded={(p) => savePosterMutation.mutate(p)}
+            onRemoved={() => savePosterMutation.mutate("")}
+            disabled={saving || savePosterMutation.isPending}
+            label="Portada del vídeo del muro (opcional)"
+          />
+        </div>
+      ) : null}
 
       {saveMutation.isPending && (
         <p className="mt-3 flex items-center gap-2 text-xs text-gold-bright">
@@ -282,10 +313,11 @@ export function AdminSettings() {
   }
 
   const muroVideo = query.data?.settings.find((s) => s.key === "muro_video")?.value ?? ""
+  const muroPoster = query.data?.settings.find((s) => s.key === "muro_video_poster")?.value ?? ""
 
   return (
     <div className="space-y-4">
-      <MuroVideoSection value={muroVideo} />
+      <MuroVideoSection value={muroVideo} poster={muroPoster} />
       <PurgeSection />
     </div>
   )

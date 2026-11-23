@@ -74,9 +74,34 @@ const portalWorker = {
       }
     }
 
-    // Pase de respuesta: conserva streaming, cookies y cabeceras
-    const out = new Response(res.body, res);
-    out.headers.delete("content-length");
+    // Pase de respuesta: conserva streaming, cookies y cabeceras.
+    //
+    // CRÍTICO para los vídeos (/api/media): el Content-Length debe
+    // conservarse. Si se elimina, las respuestas 206 parcial llegan
+    // "en chunks" sin longitud conocida y la caché multimedia del
+    // navegador se corrompe (el vídeo se reproduce una vez y luego se
+    // queda pegado). workerd solo respeta Content-Length cuando el
+    // cuerpo es un stream de longitud fija → FixedLengthStream.
+    const upstreamLen = res.headers.get("content-length");
+    const hasEncoding = res.headers.has("content-encoding");
+    const noBodyStatus =
+      res.status === 204 || res.status === 205 || res.status === 304 || method === "HEAD";
+
+    let out;
+    if (upstreamLen && !hasEncoding && res.body && !noBodyStatus) {
+      const n = parseInt(upstreamLen, 10);
+      if (Number.isFinite(n) && n >= 0) {
+        // Longitud conocida → stream de longitud fija + Content-Length real
+        const fls = new FixedLengthStream(n);
+        res.body.pipeTo(fls.writable).catch(() => {});
+        out = new Response(fls.readable, res);
+        out.headers.set("content-length", upstreamLen);
+      }
+    }
+    if (!out) {
+      out = new Response(noBodyStatus ? null : res.body, res);
+      out.headers.delete("content-length");
+    }
     if (out.headers.has("content-encoding")) out.headers.delete("content-encoding");
 
     // Reescribir redirecciones absolutas que apunten al dominio interno

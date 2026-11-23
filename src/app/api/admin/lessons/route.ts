@@ -28,6 +28,18 @@ export async function POST(req: NextRequest) {
       return errorResponse(400, "Vídeo inválido: sube el archivo con el botón de subir")
     }
     if (videoUrl && videoUrl.length > 1000) return errorResponse(400, "URL demasiado larga")
+
+    // Portada del vídeo (dataURL 16:9 comprimido en el cliente)
+    let poster: string | null = null
+    if (typeof body.poster === "string" && body.poster.trim()) {
+      poster = body.poster.trim()
+      if (!poster.startsWith("data:image/")) {
+        return errorResponse(400, "Portada inválida (debe ser una imagen)")
+      }
+      if (poster.length > 500_000) {
+        return errorResponse(400, "La portada es demasiado grande (máx ~400 KB)")
+      }
+    }
     const durationMin =
       typeof body.durationMin === "number" && Number.isFinite(body.durationMin)
         ? Math.max(1, Math.min(600, Math.round(body.durationMin)))
@@ -47,7 +59,7 @@ export async function POST(req: NextRequest) {
     }
 
     const created = await db.lesson.create({
-      data: { courseId, title, description, videoUrl, durationMin, order },
+      data: { courseId, title, description, videoUrl, poster, durationMin, order },
     })
     return Response.json({ lesson: { id: created.id } }, { status: 201 })
   } catch (e) {
