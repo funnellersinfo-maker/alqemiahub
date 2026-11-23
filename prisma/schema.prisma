@@ -46,8 +46,44 @@ model User {
   sales        Sale[]
   chatMessages ChatMessage[]
   conversations Conversation[]
+  codes        CodeSnippet[]
 
   @@index([xp])
+}
+
+// ============================================================
+// CÓDIGOS — El Grimorio: repositorio estilo GitHub dentro del
+// hub. Los alquimistas guardan el código de sus creaciones
+// (privado o público) y otros pueden bifurcarlo para reutilizarlo.
+// ============================================================
+model CodeSnippet {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  description  String   @default("")
+  language     String   @default("texto") // javascript · python · html · css · json · sql · texto ...
+  fileName     String   @default("codigo.txt")
+  visibility   String   @default("PRIVATE") // PRIVATE | PUBLIC
+  content      String // el código completo (texto plano)
+  tags         String? // etiquetas separadas por coma
+  forksCount   Int      @default(0) // cuántos lo han bifurcado
+  forkedFromId String? // id del código original (si es una bifurcación)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@index([visibility, updatedAt])
+}
+
+// ============================================================
+// AJUSTES — configuración global del hub (clave/valor) gestionada
+// desde el Panel Admin: vídeo del muro, textos del titular, etc.
+// ============================================================
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
 
 // ============================================================

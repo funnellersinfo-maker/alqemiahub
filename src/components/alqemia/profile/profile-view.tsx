@@ -102,6 +102,7 @@ type ProfileIdentity = {
   goal: string | null
   coverImage: string | null
   verified: boolean
+  role: "USER" | "ADMIN"
   xp: number
   level: LevelInfo
   createdAt: string
@@ -119,6 +120,7 @@ function identityFromMe(u: MeUser): ProfileIdentity {
     goal: u.goal,
     coverImage: u.coverImage,
     verified: isVerifiedUser(u),
+    role: u.role,
     xp: u.xp,
     level: u.level,
     createdAt: u.createdAt,
@@ -137,6 +139,7 @@ function identityFromPublic(u: PublicProfileUser): ProfileIdentity {
     goal: null,
     coverImage: u.coverImage,
     verified: isVerifiedUser(u),
+    role: u.role,
     xp: u.xp,
     level: u.level,
     createdAt: u.createdAt,
@@ -214,7 +217,14 @@ function StatCell({
   return (
     <div className="min-w-0 rounded-xl border border-zinc-800 bg-zinc-900/50 p-3 text-center">
       <Icon className="mx-auto h-4 w-4 text-gold-deep" aria-hidden />
-      <p className="mt-1.5 truncate font-semibold tabular-nums text-zinc-100">{value}</p>
+      {/* El valor nunca se corta: "INFINITUM" ajusta su tamaño */}
+      <p className="mt-1.5 font-semibold tabular-nums break-words text-zinc-100 text-sm [&_b]:font-bold">
+        {value.length > 8 ? (
+          <span className={value === "INFINITUM" ? "gold-text tracking-[0.14em]" : undefined}>{value}</span>
+        ) : (
+          value
+        )}
+      </p>
       <p className="text-[11px] text-zinc-500">{label}</p>
       {hint ? <p className="mt-0.5 text-[10px] text-zinc-600">{hint}</p> : null}
     </div>
@@ -408,6 +418,15 @@ export function ProfileView({
 
           <LevelProgress level={identity.level} className="mt-4" />
 
+          {/* El titular no muestra barras: su XP es INFINITUM */}
+          {identity.role === "ADMIN" ? (
+            <div className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-gold/40 bg-gold/10 px-3 py-3">
+              <Zap className="h-4 w-4 fill-gold text-gold" aria-hidden />
+              <span className="gold-text text-lg font-bold tracking-[0.18em]">INFINITUM</span>
+              <span className="text-xs font-medium text-zinc-400">XP</span>
+            </div>
+          ) : null}
+
           {/* Stats del gremio */}
           <div className="mt-4 grid grid-cols-3 gap-2">
             <StatCell
@@ -423,7 +442,7 @@ export function ProfileView({
             <StatCell
               icon={Zap}
               label="XP total"
-              value={String(identity.xp)}
+              value={identity.role === "ADMIN" ? "INFINITUM" : String(identity.xp)}
             />
           </div>
 

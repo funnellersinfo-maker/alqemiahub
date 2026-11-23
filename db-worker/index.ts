@@ -198,6 +198,35 @@ CREATE INDEX IF NOT EXISTS "ChatMessage_userId_createdAt_idx" ON "ChatMessage"("
 CREATE INDEX IF NOT EXISTS "ChatMessage_conversationId_createdAt_idx" ON "ChatMessage"("conversationId", "createdAt");
 `
 
+// v5 — EL GRIMORIO (códigos estilo GitHub) + AJUSTES del hub.
+// Idempotente: CREATE TABLE IF NOT EXISTS, seguro sobre bases con datos.
+const MIGRATION_V5_SQL = `
+CREATE TABLE IF NOT EXISTS "CodeSnippet" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL DEFAULT '',
+    "language" TEXT NOT NULL DEFAULT 'texto',
+    "fileName" TEXT NOT NULL DEFAULT 'codigo.txt',
+    "visibility" TEXT NOT NULL DEFAULT 'PRIVATE',
+    "content" TEXT NOT NULL,
+    "tags" TEXT,
+    "forksCount" INTEGER NOT NULL DEFAULT 0,
+    "forkedFromId" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "CodeSnippet_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+CREATE INDEX IF NOT EXISTS "CodeSnippet_userId_idx" ON "CodeSnippet"("userId");
+CREATE INDEX IF NOT EXISTS "CodeSnippet_visibility_updatedAt_idx" ON "CodeSnippet"("visibility", "updatedAt");
+
+CREATE TABLE IF NOT EXISTS "Setting" (
+    "key" TEXT NOT NULL PRIMARY KEY,
+    "value" TEXT NOT NULL,
+    "updatedAt" DATETIME NOT NULL
+);
+`
+
 export class HubDB extends DurableObject {
   private initialized = false
 
@@ -308,6 +337,8 @@ export class HubDB extends DurableObject {
     } catch {
       // nada que renombrar
     }
+    // v5: EL GRIMORIO + AJUSTES (CREATE TABLE IF NOT EXISTS)
+    execScript(this.sql, MIGRATION_V5_SQL)
   }
 
   async fetch(req: Request): Promise<Response> {

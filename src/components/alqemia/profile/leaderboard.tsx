@@ -48,17 +48,26 @@ function rankClasses(rank: number): string {
  * Valores reales del motor de gamificación (XP_REWARDS en
  * @/lib/gamification, lado servidor). No se importa directamente
  * porque ese módulo persiste en BD; mantener en sincronía.
+ * Las interacciones pesan poco: el motor es la evidencia (El Evaluador).
  */
 const XP_GUIDE: { icon: LucideIcon; label: string; value: string; note?: string }[] = [
-  { icon: Megaphone, label: "Publicar en el muro", value: "+15" },
-  { icon: MessageCircle, label: "Comentar", value: "+5" },
+  { icon: Megaphone, label: "Publicar en el muro", value: "+5" },
+  { icon: MessageCircle, label: "Comentar", value: "+2" },
   { icon: BookOpen, label: "Completar una lección", value: "+25", note: "bonus +50 al terminar un programa" },
   { icon: Sparkles, label: "Perfil completo", value: "+100" },
   { icon: Map, label: "Tour del gremio", value: "+25" },
 ]
 
-/** XP extra por reportar evidencia (lo añade el motor al publicar) */
-const REPORT_XP = 25
+/** Cómo valora El Evaluador la evidencia (motor de resultados) */
+const EVALUADOR_RULES: string[] = [
+  "Reportar evidencia parte de +10 XP base",
+  "Facturación: escala logarítmica, hasta +60 XP",
+  "Pedidos procesados: hasta +25 XP",
+  "ROAS ≥ 1.5x: hasta +25 XP",
+  "Captura de respaldo en el post: +8 XP",
+  "Constancia (varios reportes en 30 días): hasta +15 XP",
+  "Tope justo: 120 XP por reporte; repetir al día suma solo 25%",
+]
 
 export function Leaderboard({
   onOpenProfile,
@@ -118,7 +127,8 @@ export function Leaderboard({
                 aria-label={`Ver perfil de ${entry.name}`}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors -mx-2",
-                  isMe ? "bg-gold/10" : "hover:bg-gold/5"
+                  isMe ? "bg-gold/10" : "hover:bg-gold/5",
+                  entry.role === "ADMIN" && "border border-gold/30 bg-gold/10"
                 )}
               >
                 <div
@@ -131,8 +141,9 @@ export function Leaderboard({
                 </div>
                 <UserAvatar user={entry} size="sm" />
                 <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1.5 text-sm font-medium text-zinc-100">
-                    <span className="truncate">{entry.name}</span>
+                  <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm font-medium text-zinc-100">
+                    {/* El nombre NUNCA se corta: ajusta o salta de línea */}
+                    <span className="max-w-full break-words">{entry.name}</span>
                     {isVerifiedUser(entry) ? (
                       <BadgeCheck
                         className="h-4 w-4 shrink-0 fill-sky-400 text-zinc-950"
@@ -143,13 +154,22 @@ export function Leaderboard({
                       <span className="text-xs font-semibold text-gold">(tú)</span>
                     ) : null}
                   </p>
-                  <p className="truncate text-[11px] text-zinc-400">
+                  <p className="text-[11px] leading-snug text-zinc-400">
                     Nv {entry.level.level} · {entry.level.name}
                   </p>
                 </div>
-                <Zap className="h-3.5 w-3.5 shrink-0 text-gold-deep" aria-hidden />
-                <span className="shrink-0 text-sm font-semibold tabular-nums text-zinc-100">
-                  {entry.xp}
+                <Zap
+                  className={cn("h-3.5 w-3.5 shrink-0", entry.role === "ADMIN" ? "text-gold fill-gold/20" : "text-gold-deep")}
+                  aria-hidden
+                />
+                <span
+                  className={cn(
+                    "shrink-0 text-sm font-semibold tabular-nums",
+                    entry.role === "ADMIN" ? "gold-text text-[11px] tracking-wide" : "text-zinc-100"
+                  )}
+                >
+                  {/* El titular: XP INFINITUM junto al rayito */}
+                  {entry.role === "ADMIN" ? "INFINITUM" : entry.xp}
                 </span>
               </button>
             )
@@ -230,12 +250,23 @@ export function Leaderboard({
 
         <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-gold/40 bg-gold/10 p-3">
           <FlaskConical className="mt-0.5 h-4 w-4 shrink-0 text-gold-bright" aria-hidden />
-          <p className="text-xs leading-relaxed text-gold-bright">
-            <span className="font-semibold">
-              Reportar resultados al publicar +{REPORT_XP} XP
-            </span>{" "}
-            — la evidencia es lo que hace destacar tu perfil
-          </p>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-gold-bright">
+              El Evaluador — los RESULTADOS mandan
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-gold-bright/90">
+              Al publicar con métricas (facturación, pedidos, ROAS), el algoritmo
+              del gremio valora tu evidencia y convierte avances reales en XP.
+            </p>
+            <ul className="mt-2 space-y-1">
+              {EVALUADOR_RULES.map((rule) => (
+                <li key={rule} className="flex items-start gap-1.5 text-[11px] leading-snug text-zinc-300">
+                  <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-gold" aria-hidden />
+                  {rule}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     </Card>

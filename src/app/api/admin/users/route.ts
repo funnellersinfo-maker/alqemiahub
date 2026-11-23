@@ -6,7 +6,7 @@ import { db } from "@/lib/db"
 import { isAdminRequest } from "@/lib/admin"
 import { authOptions } from "@/lib/auth"
 import { errorResponse, handleApiError } from "@/lib/api-helpers"
-import { getLevelInfo } from "@/lib/gamification"
+import { getDisplayLevel } from "@/lib/gamification"
 import type { AdminUserRow } from "@/lib/types"
 
 export async function GET(req: NextRequest) {
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
       role: u.role === "ADMIN" ? "ADMIN" : "USER",
       status: u.status === "BLOCKED" ? "BLOCKED" : "ACTIVE",
       xp: u.xp,
-      level: getLevelInfo(u.xp),
+      level: getDisplayLevel(u),
       postCount: u._count.posts,
       commentCount: u._count.comments,
       lessonsCompleted: u._count.progress,

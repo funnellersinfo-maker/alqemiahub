@@ -10,6 +10,7 @@ export type AppView =
   | "feed"
   | "live"
   | "classroom"
+  | "codes"
   | "market"
   | "tools"
   | "ai"
@@ -18,9 +19,10 @@ export type AppView =
 
 export type XpToastItem = {
   id: number
-  kind: "xp" | "levelup" | "achievement"
+  kind: "xp" | "levelup" | "achievement" | "evaluador"
   title: string
   subtitle?: string
+  lines?: string[]
 }
 
 let toastCounter = 0
@@ -67,6 +69,17 @@ export const useAppStore = create<AppState>((set, get) => ({
 export function celebrateXp(ev: XpEvent | null | undefined) {
   if (!ev) return
   const store = useAppStore.getState()
+  // El Evaluador: desglose de la evidencia valorada (si viene)
+  if (ev.evidence && ev.evidence.lines.length > 0) {
+    store.pushXpToast({
+      kind: "evaluador",
+      title: "El Evaluador ha hablado",
+      subtitle: `Evidencia valorada: +${ev.evidence.total} XP${ev.evidence.capped ? " (tope alcanzado)" : ""}`,
+      lines: ev.evidence.lines
+        .filter((l) => l.xp !== 0)
+        .map((l) => `${l.xp > 0 ? "+" : ""}${l.xp} · ${l.label} — ${l.detail}`),
+    })
+  }
   if (ev.awarded > 0) {
     store.pushXpToast({
       kind: "xp",

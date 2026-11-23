@@ -50,6 +50,36 @@ export function getLevelInfo(xp: number): LevelInfo {
   }
 }
 
+// ============================================================
+// EL TITULAR — el ADMIN (Alejo) es siempre el #1 del gremio:
+// rango Gran Maestre sellado y XP INFINITUM (∞) de exhibición.
+// ============================================================
+
+export const TITULAR_LEVEL: LevelInfo = {
+  level: 7,
+  name: "Gran Maestre",
+  currentXp: Number.MAX_SAFE_INTEGER,
+  xpIntoLevel: 1,
+  xpForLevel: 1,
+  nextLevelXp: null,
+  xpToNext: null,
+  progressPct: 100,
+}
+
+export function isTitular(user: { role?: string | null }): boolean {
+  return user.role === "ADMIN"
+}
+
+/** Nivel de exhibición: el titular siempre muestra Gran Maestre. */
+export function getDisplayLevel(user: { role?: string | null; xp: number }): LevelInfo {
+  return isTitular(user) ? TITULAR_LEVEL : getLevelInfo(user.xp)
+}
+
+/** XP de exhibición: el titular muestra INFINITUM. */
+export function getDisplayXp(user: { role?: string | null; xp: number }): string {
+  return isTitular(user) ? "INFINITUM" : new Intl.NumberFormat("es").format(user.xp)
+}
+
 // Logros disponibles — icono = nombre de icono de lucide-react
 export const ACHIEVEMENTS: Record<string, { label: string; icon: string }> = {
   perfil_completo: { label: "Perfil Transmutado", icon: "Sparkles" },
@@ -57,6 +87,7 @@ export const ACHIEVEMENTS: Record<string, { label: string; icon: string }> = {
   primer_post: { label: "Primera Transmutación", icon: "FlaskConical" },
   tres_posts: { label: "Voz de la Comunidad", icon: "Megaphone" },
   primer_reporte: { label: "Primera Evidencia", icon: "FileBarChart" },
+  maestro_evidencia: { label: "Maestro de la Evidencia", icon: "FileBarChart" },
   primer_comentario: { label: "Conversador Nato", icon: "MessageCircle" },
   primera_leccion: { label: "Primer Paso", icon: "Footprints" },
   cinco_lecciones: { label: "Estudiante Dedicado", icon: "BookOpen" },

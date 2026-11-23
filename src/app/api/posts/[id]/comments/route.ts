@@ -32,6 +32,7 @@ export async function GET(
         headline: c.user.headline,
         xp: c.user.xp,
         verified: isVerifiedUser(c.user),
+        role: c.user.role === "ADMIN" ? "ADMIN" : "USER",
       },
     }))
 
@@ -76,6 +77,7 @@ export async function POST(
         headline: user.headline,
         xp: xp?.totalXp ?? user.xp,
         verified: isVerifiedUser(user),
+        role: user.role === "ADMIN" ? "ADMIN" : "USER",
       },
     }
 

@@ -1,7 +1,7 @@
 "use client"
 
-import { useInfiniteQuery } from "@tanstack/react-query"
-import { Loader2, MessageSquare } from "lucide-react"
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
+import { Loader2, MessageSquare, PlayCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -38,6 +38,89 @@ function FeedSkeletons() {
   )
 }
 
+/** Extrae la URL de embed de YouTube (watch / youtu.be / embed) o null. */
+function youtubeEmbed(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?(?:.*&)?v=)([\w-]{6,})/i,
+    /(?:youtu\.be\/)([\w-]{6,})/i,
+    /(?:youtube\.com\/embed\/)([\w-]{6,})/i,
+    /(?:youtube\.com\/shorts\/)([\w-]{6,})/i,
+  ]
+  for (const p of patterns) {
+    const m = url.match(p)
+    if (m) return `https://www.youtube.com/embed/${m[1]}`
+  }
+  return null
+}
+
+/**
+ * Vídeo del titular: lo carga el jefe desde su Panel Admin (Ajustes)
+ * y aparece entre el título del muro y la caja de escribir.
+ */
+function MuroVideo() {
+  const { data } = useQuery<{ key: string; value: string | null }>({
+    queryKey: ["muro-video"],
+    queryFn: async () => {
+      const res = await fetch("/api/settings?key=muro_video")
+      if (!res.ok) return { key: "muro_video", value: null }
+      return res.json() as Promise<{ key: string; value: string | null }>
+    },
+    staleTime: 60_000,
+  })
+
+  const url = data?.value?.trim() ?? ""
+  if (!url) return null
+
+  const embed = youtubeEmbed(url)
+  const isDirectVideo = /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url)
+
+  return (
+    <section
+      className="gate-card mt-4 overflow-hidden rounded-2xl"
+      aria-label="Mensaje en vídeo del titular"
+    >
+      <div className="flex items-center gap-2 border-b border-gold/20 px-4 py-2.5">
+        <PlayCircle className="h-4 w-4 text-gold" aria-hidden />
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gold/80">
+          Mensaje del Titular
+        </p>
+      </div>
+      {embed ? (
+        <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
+          <iframe
+            src={embed}
+            title="Mensaje del titular"
+            className="absolute inset-0 h-full w-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            loading="lazy"
+          />
+        </div>
+      ) : isDirectVideo ? (
+         
+        <video
+          src={url}
+          controls
+          preload="metadata"
+          playsInline
+          className="w-full bg-black"
+          style={{ aspectRatio: "16 / 9", maxHeight: "70vh" }}
+        />
+      ) : (
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-3 px-4 py-4 text-sm font-medium text-gold-bright transition-colors hover:text-gold"
+        >
+          <PlayCircle className="h-5 w-5 shrink-0" aria-hidden />
+          Ver el mensaje del titular
+        </a>
+      )}
+    </section>
+  )
+}
+
 export function FeedView() {
   const query = useInfiniteQuery<FeedResponse, Error>({
     queryKey: ["feed"],
@@ -56,7 +139,7 @@ export function FeedView() {
 
   return (
     <div className="mx-auto w-full max-w-2xl pb-4">
-      <header className="mb-6">
+      <header className="mb-4">
         <h1 className="text-2xl">
           <AlqemiaLetters text="El Muro" strokeWidth={8} />
         </h1>
@@ -65,7 +148,12 @@ export function FeedView() {
         </p>
       </header>
 
-      <PostComposer />
+      {/* Vídeo opcional cargado por el titular desde su Panel Admin */}
+      <MuroVideo />
+
+      <div className="mt-4">
+        <PostComposer />
+      </div>
 
       <div className="mt-6">
         {query.isLoading ? (

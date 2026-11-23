@@ -21,12 +21,31 @@ export type XpAchievement = {
   icon: string
 }
 
+// ============================================================
+// EL EVALUADOR — algoritmo interno que valora la evidencia
+// (resultados reportados) y convierte avances reales en XP.
+// ============================================================
+
+export type EvidenceLine = {
+  label: string
+  detail: string
+  xp: number
+}
+
+export type EvidenceVerdict = {
+  total: number
+  lines: EvidenceLine[]
+  capped: boolean
+}
+
 export type XpEvent = {
   awarded: number
   totalXp: number
   level: LevelInfo
   leveledUp: boolean
   achievement?: XpAchievement
+  /** Desglose de El Evaluador (solo cuando el XP viene de evidencia) */
+  evidence?: EvidenceVerdict
 }
 
 export type MeAchievement = {
@@ -71,6 +90,7 @@ export type PostAuthor = {
   headline: string | null
   xp: number
   verified: boolean
+  role: "USER" | "ADMIN" // el titular (ADMIN) muestra XP INFINITUM
 }
 
 export type FeedPost = {
@@ -136,6 +156,7 @@ export type LeaderboardEntry = {
   xp: number
   level: LevelInfo
   verified: boolean
+  role: "USER" | "ADMIN" // el titular siempre es #1 con XP INFINITUM
 }
 
 export type AdminUserRow = {
@@ -384,9 +405,117 @@ export type PublicProfileUser = {
   level: LevelInfo
   createdAt: string
   experience: string | null
+  role: "USER" | "ADMIN"
   postCount: number
   commentCount: number
   achievements: MeAchievement[]
   results: PublicResults
   isOwn: boolean
 }
+
+// ============================================================
+// EL GRIMORIO — códigos de las creaciones (estilo GitHub)
+// ============================================================
+
+export type CodeVisibility = "PRIVATE" | "PUBLIC"
+
+export type CodeDTO = {
+  id: string
+  title: string
+  description: string
+  language: string
+  fileName: string
+  visibility: CodeVisibility | string
+  tags: string | null
+  forksCount: number
+  forkedFromId: string | null
+  forkedFromTitle: string | null
+  createdAt: string
+  updatedAt: string
+  owner: {
+    id: string
+    name: string
+    image: string | null
+    avatarColor: string | null
+    headline: string | null
+    role: "USER" | "ADMIN"
+  }
+  isMine: boolean
+}
+
+/** Versión extendida con el contenido (solo detalle del código) */
+export type CodeDetailDTO = CodeDTO & {
+  content: string
+}
+
+export const CODE_LANGUAGES: { value: string; label: string }[] = [
+  { value: "javascript", label: "JavaScript" },
+  { value: "typescript", label: "TypeScript" },
+  { value: "python", label: "Python" },
+  { value: "html", label: "HTML" },
+  { value: "css", label: "CSS" },
+  { value: "json", label: "JSON" },
+  { value: "sql", label: "SQL" },
+  { value: "bash", label: "Bash" },
+  { value: "php", label: "PHP" },
+  { value: "java", label: "Java" },
+  { value: "csharp", label: "C#" },
+  { value: "cpp", label: "C++" },
+  { value: "go", label: "Go" },
+  { value: "rust", label: "Rust" },
+  { value: "swift", label: "Swift" },
+  { value: "react", label: "React / JSX" },
+  { value: "markdown", label: "Markdown" },
+  { value: "yaml", label: "YAML" },
+  { value: "texto", label: "Texto plano" },
+]
+
+export function codeLanguageLabel(v: string): string {
+  return CODE_LANGUAGES.find((l) => l.value === v)?.label ?? v
+}
+
+// ============================================================
+// AJUSTES DEL HUB (clave/valor gestionados desde el Panel Admin)
+// ============================================================
+
+export type HubSettings = {
+  muroVideo: string | null // URL de vídeo (YouTube/mp4) entre el título del muro y la caja de escribir
+}
+
+// ============================================================
+// VOZ IA — catálogo de voces del generador de audio
+// ============================================================
+
+export type TtsEngine = "google" | "casa"
+
+export type TtsVoice = {
+  id: string
+  engine: TtsEngine
+  label: string
+  desc: string
+  flag: string
+}
+
+export const TTS_VOICES: TtsVoice[] = [
+  { id: "es", engine: "google", label: "Español España", desc: "Castellano neutro", flag: "ES" },
+  { id: "es-US", engine: "google", label: "Español Latino", desc: "Acento latino de EE. UU.", flag: "LATAM" },
+  { id: "es-MX", engine: "google", label: "Español Mexicano", desc: "Acento mexicano", flag: "MX" },
+  { id: "pt", engine: "google", label: "Portugués", desc: "Brasil", flag: "BR" },
+  { id: "en", engine: "google", label: "Inglés", desc: "US", flag: "EN" },
+  { id: "fr", engine: "google", label: "Francés", desc: "Francia", flag: "FR" },
+  { id: "it", engine: "google", label: "Italiano", desc: "Italia", flag: "IT" },
+  { id: "de", engine: "google", label: "Alemán", desc: "Alemania", flag: "DE" },
+  { id: "ja", engine: "google", label: "Japonés", desc: "Japón", flag: "JA" },
+  { id: "ko", engine: "google", label: "Coreano", desc: "Corea", flag: "KO" },
+  { id: "zh", engine: "google", label: "Chino", desc: "Mandarín", flag: "ZH" },
+  { id: "ru", engine: "google", label: "Ruso", desc: "Rusia", flag: "RU" },
+  { id: "ar", engine: "google", label: "Árabe", desc: "Internacional", flag: "AR" },
+  { id: "hi", engine: "google", label: "Hindi", desc: "India", flag: "HI" },
+  { id: "jam", engine: "casa", label: "Jam", desc: "Caballero británico · voz de la casa", flag: "PRO" },
+  { id: "kazi", engine: "casa", label: "Kazi", desc: "Locutor claro y estándar", flag: "PRO" },
+  { id: "tongtong", engine: "casa", label: "TongTong", desc: "Cálida y cercana", flag: "PRO" },
+  { id: "xiaochen", engine: "casa", label: "XiaoChen", desc: "Sobria y profesional", flag: "PRO" },
+  { id: "douji", engine: "casa", label: "DouJi", desc: "Natural y fluida", flag: "PRO" },
+  { id: "luodo", engine: "casa", label: "LuoDo", desc: "Expresiva y con fuerza", flag: "PRO" },
+  { id: "chuichui", engine: "casa", label: "ChuiChui", desc: "Dulce y juguetona", flag: "PRO" },
+]

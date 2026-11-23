@@ -305,8 +305,9 @@ export function PostComposer() {
               </label>
             </div>
             <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
-              Los reportes alimentan tu rango (+25 XP) y quedan como evidencia pública en el
-              muro. Solo reporta cifras reales.
+              <span className="font-semibold text-gold-bright">El Evaluador</span> valora tu
+              evidencia (hasta +120 XP según facturación, pedidos y ROAS) y queda como evidencia
+              pública en el muro. Solo reporta cifras reales.
             </p>
           </CollapsibleContent>
         </Collapsible>

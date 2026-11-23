@@ -36,7 +36,7 @@ import {
 import { UserAvatar } from "@/components/alqemia/avatar"
 import { LevelBadge } from "@/components/alqemia/level-badge"
 import { CommentsSection } from "./comments-section"
-import { getLevelInfo } from "@/lib/levels"
+import { getDisplayLevel } from "@/lib/levels"
 import { timeAgo } from "@/lib/time"
 import { cn } from "@/lib/utils"
 import type { FeedPost, FeedResponse } from "@/lib/types"
@@ -151,12 +151,12 @@ export function PostCard({ post }: { post: FeedPost }) {
             <UserAvatar user={post.user} size="md" />
           </button>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
               <button
                 type="button"
                 onClick={() => openProfile(post.user.id)}
                 aria-label={`Ver perfil de ${post.user.name}`}
-                className="cursor-pointer truncate rounded-sm text-left font-semibold text-[15px] text-zinc-100 transition-colors hover:text-gold-bright focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40"
+                className="max-w-full cursor-pointer break-words text-left font-semibold text-[15px] leading-tight text-zinc-100 transition-colors hover:text-gold-bright focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40"
               >
                 {post.user.name}
               </button>
@@ -166,7 +166,7 @@ export function PostCard({ post }: { post: FeedPost }) {
                   aria-label="Cuenta verificada"
                 />
               )}
-              <LevelBadge level={getLevelInfo(post.user.xp)} className="shrink-0" />
+              <LevelBadge level={getDisplayLevel(post.user)} className="shrink-0" />
             </div>
             <p className="mt-0.5 text-xs text-zinc-500">{meta}</p>
           </div>

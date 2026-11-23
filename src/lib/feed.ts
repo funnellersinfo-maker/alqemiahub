@@ -32,6 +32,7 @@ export function toFeedPost(post: FeedPostWithInclude, sessionUserId: string | nu
       headline: post.user.headline,
       xp: post.user.xp,
       verified: isVerifiedUser(post.user),
+      role: post.user.role === "ADMIN" ? "ADMIN" : "USER",
     },
     likeCount: post._count.likes,
     likedByMe: post.likes.some((l) => l.userId === sessionUserId),

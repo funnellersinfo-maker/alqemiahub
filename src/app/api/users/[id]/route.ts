@@ -5,7 +5,7 @@
 import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { requireActiveUser, ApiError, handleApiError } from "@/lib/api-helpers"
-import { ACHIEVEMENTS, getLevelInfo } from "@/lib/gamification"
+import { ACHIEVEMENTS, getDisplayLevel } from "@/lib/gamification"
 import { isVerifiedUser } from "@/lib/profile"
 import type { PublicProfileUser } from "@/lib/types"
 
@@ -56,9 +56,10 @@ export async function GET(
       coverImage: user.coverImage,
       verified: isVerifiedUser(user),
       xp: user.xp,
-      level: getLevelInfo(user.xp),
+      level: getDisplayLevel(user),
       createdAt: user.createdAt.toISOString(),
       experience: user.experience,
+      role: user.role === "ADMIN" ? "ADMIN" : "USER",
       postCount,
       commentCount,
       achievements: user.achievements.map((a) => ({

@@ -1,7 +1,8 @@
-// GET /api/leaderboard — Top 10 miembros por XP
+// GET /api/leaderboard — Top 10 miembros por XP.
+// El Titular (ADMIN) es SIEMPRE el #1 del gremio con XP INFINITUM.
 import { db } from "@/lib/db"
 import { requireActiveUser, handleApiError } from "@/lib/api-helpers"
-import { getLevelInfo } from "@/lib/gamification"
+import { getDisplayLevel } from "@/lib/gamification"
 import { isVerifiedUser } from "@/lib/profile"
 import type { LeaderboardEntry } from "@/lib/types"
 
@@ -11,7 +12,8 @@ export async function GET() {
 
     const top = await db.user.findMany({
       where: { status: "ACTIVE" },
-      orderBy: { xp: "desc" },
+      // "ADMIN" < "USER" alfabéticamente → el titular encabeza siempre
+      orderBy: [{ role: "asc" }, { xp: "desc" }],
       take: 10,
       select: {
         id: true,
@@ -32,8 +34,9 @@ export async function GET() {
       avatarColor: u.avatarColor,
       headline: u.headline,
       xp: u.xp,
-      level: getLevelInfo(u.xp),
+      level: getDisplayLevel(u),
       verified: isVerifiedUser(u),
+      role: u.role === "ADMIN" ? "ADMIN" : "USER",
     }))
 
     return Response.json({ top: entries })

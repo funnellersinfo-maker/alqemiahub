@@ -15,6 +15,7 @@ import {
   Home,
   Radio,
   GraduationCap,
+  Code2,
   Store,
   Wrench,
   Sparkles,
@@ -27,7 +28,7 @@ import {
   Zap,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { AlqemiaMark, AlqemiaLetters } from "@/components/alqemia/fx/alqemia-lettering"
+import { AlqemiaLetters } from "@/components/alqemia/fx/alqemia-lettering"
 import { useAppStore, type AppView } from "@/lib/store"
 import { useMe } from "@/hooks/use-me"
 import { UserAvatar } from "@/components/alqemia/avatar"
@@ -35,6 +36,7 @@ import { AlchemyBackground } from "@/components/alqemia/fx/alchemy-background"
 import { FeedView } from "@/components/alqemia/feed/feed-view"
 import { LiveView } from "@/components/alqemia/live/live-view"
 import { ClassroomView } from "@/components/alqemia/classroom/classroom-view"
+import { CodesView } from "@/components/alqemia/codes/codes-view"
 import { MarketplaceView } from "@/components/alqemia/marketplace/marketplace-view"
 import { AiChatView } from "@/components/alqemia/ai/ai-chat-view"
 import { ToolsView } from "@/components/alqemia/tools/tools-view"
@@ -45,20 +47,37 @@ import { TourOverlay } from "@/components/alqemia/tour/tour-overlay"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 
-type NavKey = "feed" | "live" | "classroom" | "market" | "tools" | "ai" | "profile"
+type NavKey = "feed" | "live" | "classroom" | "codes" | "market" | "tools" | "ai" | "profile"
 
 const NAV: { key: NavKey; label: string; shortLabel: string; icon: typeof Home }[] = [
   { key: "feed", label: "Muro", shortLabel: "Muro", icon: Home },
   { key: "live", label: "En Vivo", shortLabel: "En Vivo", icon: Radio },
   { key: "classroom", label: "Classroom", shortLabel: "Clases", icon: GraduationCap },
+  { key: "codes", label: "Códigos", shortLabel: "Códigos", icon: Code2 },
   { key: "market", label: "Marketplace", shortLabel: "Mercado", icon: Store },
   { key: "tools", label: "Herramientas", shortLabel: "Tools", icon: Wrench },
   { key: "ai", label: "El Oráculo (IA)", shortLabel: "IA", icon: Sparkles },
   { key: "profile", label: "Perfil", shortLabel: "Perfil", icon: User },
 ]
 
+/** Logo real de la entrada: la marca Λ dorada sobre negro (logo-mark.png) */
 function Logo({ className }: { className?: string }) {
-  return <AlqemiaMark className={cn("h-9 w-9 drop-shadow-[0_2px_10px_rgba(212,175,55,0.3)]", className)} />
+  return (
+    <span
+      className={cn(
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-black ring-1 ring-gold/30",
+        className ?? "h-9 w-9"
+      )}
+    >
+      { }
+      <img
+        src="/images/logo-mark.png"
+        alt="ALQEMIA"
+        className="h-full w-full object-contain"
+        draggable={false}
+      />
+    </span>
+  )
 }
 
 function handleLogout() {
@@ -221,7 +240,8 @@ export function AppShell() {
               </p>
               <span className="flex items-center gap-1 text-xs font-semibold text-gold">
                 <Zap className="h-3 w-3 fill-gold" aria-hidden />
-                {level.currentXp}
+                {/* El titular (admin) muestra XP INFINITUM */}
+                {user?.role === "ADMIN" ? "INFINITUM" : level.currentXp}
               </span>
             </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-800">
@@ -286,10 +306,11 @@ export function AppShell() {
             <button
               onClick={() => go("profile")}
               className="flex items-center gap-1.5 rounded-full bg-zinc-950 px-2.5 py-1 text-xs font-semibold text-gold-bright transition-transform active:scale-95"
-              aria-label={`${level.currentXp} XP · Nivel ${level.level}`}
+              aria-label={user.role === "ADMIN" ? "XP INFINITUM · Gran Maestre" : `${level.currentXp} XP · Nivel ${level.level}`}
             >
               <Zap className="h-3 w-3 fill-gold text-gold" aria-hidden />
-              {level.currentXp}
+              {/* El titular muestra ∞; el resto, su XP real */}
+              {user.role === "ADMIN" ? "∞" : level.currentXp}
               <span className="text-zinc-500">·</span>
               <span className="font-medium text-zinc-300">Nv {level.level}</span>
             </button>
@@ -318,6 +339,7 @@ export function AppShell() {
             {view === "feed" && <FeedView />}
             {view === "live" && <LiveView />}
             {view === "classroom" && <ClassroomView />}
+            {view === "codes" && <CodesView />}
             {view === "market" && <MarketplaceView />}
             {view === "tools" && <ToolsView />}
             {view === "ai" && <AiChatView />}
@@ -346,7 +368,7 @@ export function AppShell() {
               onClick={() => go(key)}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "relative flex min-w-[14.28%] shrink-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-[9px] font-medium transition-colors",
+                "relative flex min-w-[12.5%] shrink-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-[9px] font-medium transition-colors",
                 active ? "text-gold" : "text-zinc-400 hover:text-zinc-200"
               )}
             >

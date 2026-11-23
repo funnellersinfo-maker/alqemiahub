@@ -69,9 +69,18 @@ export async function POST(req: NextRequest) {
     })
 
     // XP tras registrar la acción (logros incluidos).
-    // Post con métricas → +15 (post) y +25 (report) en un evento combinado.
+    // Post con métricas → +5 (post) y El Evaluador valora la evidencia.
     const postXp: XpEvent | null = await awardXpFor(user.id, "post")
-    const reportXp: XpEvent | null = hasMetrics ? await awardXpFor(user.id, "report") : null
+    const reportXp: XpEvent | null = hasMetrics
+      ? await awardXpFor(user.id, "report", {
+          evidence: {
+            revenue: metricRevenue,
+            orders: metricOrders,
+            roas: metricRoas,
+            hasImage: Boolean(image),
+          },
+        })
+      : null
 
     let xp: XpEvent | null
     if (postXp && reportXp) {

@@ -4,13 +4,14 @@
 // EL ARSENAL — Herramientas de ALQEMIA
 // Bienvenida elegante + submenú por categorías para que las
 // herramientas no queden sueltas: Copys & Persuasión,
-// Precios & Estrategia, Clientes & Contacto.
+// Precios & Estrategia, Voz & Audio, Clientes & Contacto.
 // ============================================================
 
 import { useState } from "react"
 import type { LucideIcon } from "lucide-react"
 import {
   ArrowLeft,
+  AudioLines,
   Calculator,
   ChevronRight,
   FolderOpen,
@@ -25,12 +26,13 @@ import {
 
 import { CopyLabTool } from "@/components/alqemia/tools/copylab-tool"
 import { PricingCalculator } from "@/components/alqemia/tools/pricing-calculator"
+import { VoiceTool } from "@/components/alqemia/tools/voice-tool"
 import { WhalinkTool } from "@/components/alqemia/tools/whalink-tool"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { AlqemiaLetters } from "@/components/alqemia/fx/alqemia-lettering"
 
-type CategoryKey = "copy" | "strategy" | "contact"
+type CategoryKey = "copy" | "strategy" | "voice" | "contact"
 
 type Category = {
   key: CategoryKey
@@ -57,6 +59,14 @@ const CATEGORIES: Category[] = [
     icon: Calculator,
     tools: ["Calculadora de Precios"],
     soonCount: 2,
+  },
+  {
+    key: "voice",
+    title: "Voz & Audio",
+    desc: "Convierte texto en voz humana con IA: elige entre 20+ voces y descarga el audio.",
+    icon: AudioLines,
+    tools: ["Voz del Alquimista"],
+    soonCount: 0,
   },
   {
     key: "contact",
@@ -99,6 +109,7 @@ const LOCKED_BY_CATEGORY: Record<CategoryKey, LockedTool[]> = {
       desc: "Espía las ofertas de tu nicho",
     },
   ],
+  voice: [],
   contact: [],
 }
 
@@ -148,9 +159,9 @@ function Welcome({ onOpen }: { onOpen: (key: CategoryKey) => void }) {
               </span>
             </h1>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-zinc-400">
-              Tus instrumentos de transmutación: copys de élite, números claros y
-              contacto directo con tus clientes. Elige una categoría y forja
-              resultados.
+              Tus instrumentos de transmutación: copys de élite, números claros,
+              voz humana con IA y contacto directo con tus clientes. Elige una
+              categoría y forja resultados.
             </p>
           </div>
         </div>
@@ -244,6 +255,7 @@ function CategoryView({
         {/* Herramienta(s) activa(s) de la categoría */}
         {category.key === "copy" && <CopyLabTool />}
         {category.key === "strategy" && <PricingCalculator />}
+        {category.key === "voice" && <VoiceTool />}
         {category.key === "contact" && <WhalinkTool />}
 
         {locked.map((tool) => (

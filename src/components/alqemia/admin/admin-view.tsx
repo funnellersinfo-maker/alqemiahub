@@ -64,38 +64,12 @@ import { EmptyState } from "@/components/alqemia/empty-state"
 import { UserAvatar } from "@/components/alqemia/avatar"
 import { InvitesManager } from "@/components/alqemia/admin/invites-manager"
 import { LiveManager } from "@/components/alqemia/admin/live-manager"
+import { StudioManager } from "@/components/alqemia/admin/studio-manager"
+import { AdminSettings } from "@/components/alqemia/admin/admin-settings"
+import { adminFetch, isLockedError } from "@/components/alqemia/admin/admin-fetch"
 import { AlqemiaLetters } from "@/components/alqemia/fx/alqemia-lettering"
 
-// ============================================================
-// Fetch autenticado con clave de admin (localStorage)
-// ============================================================
-
-async function adminFetch<T>(url: string, init?: RequestInit): Promise<T> {
-  const key = localStorage.getItem("alqemia-admin-key") ?? ""
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      "x-admin-key": key,
-      ...(init?.headers ?? {}),
-    },
-  })
-  if (res.status === 401) {
-    useAppStore.getState().setAdminUnlocked(false)
-    throw new Error("Sesión de admin cerrada")
-  }
-  if (!res.ok) {
-    const j = (await res.json().catch(() => ({}))) as { error?: string }
-    throw new Error(j.error ?? "Error inesperado")
-  }
-  return res.json() as Promise<T>
-}
-
 type AdminPost = FeedPost & { authorEmail: string }
-
-function isLockedError(err: unknown): boolean {
-  return err instanceof Error && err.message.includes("admin cerrada")
-}
 
 // ============================================================
 // Estados de query
@@ -756,6 +730,8 @@ export function AdminView() {
           <TabsTrigger value="invitaciones">Invitaciones</TabsTrigger>
           <TabsTrigger value="contenido">Contenido</TabsTrigger>
           <TabsTrigger value="envivo">En Vivo</TabsTrigger>
+          <TabsTrigger value="estudio">Estudio</TabsTrigger>
+          <TabsTrigger value="ajustes">Ajustes</TabsTrigger>
         </TabsList>
         <TabsContent value="resumen" className="mt-4">
           <ResumenTab />
@@ -771,6 +747,12 @@ export function AdminView() {
         </TabsContent>
         <TabsContent value="envivo" className="mt-4">
           <LiveManager />
+        </TabsContent>
+        <TabsContent value="estudio" className="mt-4">
+          <StudioManager />
+        </TabsContent>
+        <TabsContent value="ajustes" className="mt-4">
+          <AdminSettings />
         </TabsContent>
       </Tabs>
     </div>

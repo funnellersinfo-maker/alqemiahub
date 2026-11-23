@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { requireUser, errorResponse, handleApiError } from "@/lib/api-helpers"
-import { awardXpFor, ACHIEVEMENTS, getLevelInfo } from "@/lib/gamification"
+import { awardXpFor, ACHIEVEMENTS, getDisplayLevel } from "@/lib/gamification"
 import { isExperienceValue, isVerifiedUser } from "@/lib/profile"
 import type { MeUser, XpEvent } from "@/lib/types"
 
@@ -28,7 +28,7 @@ async function buildMeUser(userId: string): Promise<MeUser> {
     profileCompleted: user.profileCompleted,
     tourCompletedAt: user.tourCompletedAt ? user.tourCompletedAt.toISOString() : null,
     createdAt: user.createdAt.toISOString(),
-    level: getLevelInfo(user.xp),
+    level: getDisplayLevel(user),
     achievements: user.achievements.map((a) => ({
       code: a.code,
       label: ACHIEVEMENTS[a.code]?.label ?? a.code,
