@@ -1,25 +1,28 @@
 // ============================================================
-// MEDIA TOKEN — Firma de enlaces de vídeo para el media worker
+// MEDIA TOKEN — Firma de enlaces y tokens de subida
 // ------------------------------------------------------------
-// Los vídeos se sirven (producción) desde el worker de relé
-// alqemia-media (workerd puro) a través del portal, NO desde
-// OpenNext/Node.js (que excedía el límite de CPU con vídeos
-// grandes → Error 1102). Ese worker autentica cada petición
-// con un enlace firmado HMAC-SHA256 que esta utilidad añade a
-// las URLs internas /api/media/... en el momento en que la API
-// las devuelve al cliente:
+// REPRODUCCIÓN (/api/media/…): enlace firmado HMAC-SHA256 que el
+// media worker (alqemia-media, sobre R2) valida sin sesión.
 //
-//     /api/media/lessons/x.mp4?e=<caducidad>&s=<firma>
+//   NOVEDAD v2 — VENTANA ESTABLE: la caducidad se redondea a
+//   ventanas de 30 días → la misma clave produce LA MISMA URL
+//   durante semanas → el navegador, la CDN y la Bóveda Offline
+//   pueden cachear. (Antes la firma rotaba en cada carga y
+//   rompía cualquier caché → vídeos lentos SIEMPRE.)
 //
-// Sin firma (desarrollo local, sin Cloudflare) la URL se
-// devuelve tal cual — la ruta /api/media clásica sirve desde
-// disco y no requiere token.
+// SUBIDA DE MIEMBROS: token corto (10 min) firmado por la app
+// que permite al media worker aceptar la imagen del muro de un
+// miembro autenticado (POST /api/uploader/token).
 // ============================================================
 
 import { getCloudflareContext } from "@opennextjs/cloudflare"
 
-/** Vida útil del enlace: 7 días (rota en cada carga de datos). */
-const TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60
+/** Ventana estable: 30 días (la URL no cambia dentro de la ventana). */
+const WINDOW_SECONDS = 30 * 24 * 60 * 60
+/** Validez siempre ≥ 30 días y ≤ 60 días tras la firma. */
+const TOKEN_TTL_SECONDS = 2 * WINDOW_SECONDS
+/** Tokens de subida de miembros: 10 minutos. */
+const UPLOAD_TOKEN_TTL = 600
 
 type CfEnvLike = { MEDIA_SIGNING_KEY?: string }
 
@@ -55,14 +58,29 @@ async function hmacHex(secret: string, message: string): Promise<string> {
 /**
  * Añade ?e=&s= a una URL interna de medios (no-op con URLs externas
  * o cuando no hay clave de firma — desarrollo local). null → null.
+ * Limpia firmas viejas para no acumular query strings.
  */
 export async function signMediaUrl(url: string | null | undefined): Promise<string | null> {
   if (!url) return null
   if (!url.startsWith("/api/media/")) return url
   const secret = resolveSigningKey()
   if (!secret) return url
-  const key = url.slice("/api/media/".length)
-  const e = Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS
+  const clean = url.split("?")[0]
+  const key = clean.slice("/api/media/".length)
+  // Ventana estable: misma e (y misma firma) durante 30 días
+  const e = (Math.floor(Date.now() / 1000 / WINDOW_SECONDS) + 2) * WINDOW_SECONDS
   const s = await hmacHex(secret, `${key}|${e}`)
-  return `${url}?e=${e}&s=${s}`
+  return `${clean}?e=${e}&s=${s}`
+}
+
+/**
+ * Token de subida corto para miembros (imágenes del muro).
+ * Lo verifica el media worker contra `up|{key}|{e}`.
+ */
+export async function createUploadToken(key: string): Promise<{ t: string; e: number } | null> {
+  const secret = resolveSigningKey()
+  if (!secret) return null
+  const e = Math.floor(Date.now() / 1000) + UPLOAD_TOKEN_TTL
+  const t = await hmacHex(secret, `up|${key}|${e}`)
+  return { t, e }
 }

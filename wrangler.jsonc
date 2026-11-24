@@ -17,6 +17,12 @@
       }
     ]
   },
+  "services": [
+    {
+      "binding": "MEDIA",
+      "service": "alqemia-media"
+    }
+  ],
   "ai": {
     "binding": "AI"
   },

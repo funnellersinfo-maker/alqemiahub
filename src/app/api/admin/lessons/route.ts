@@ -29,14 +29,17 @@ export async function POST(req: NextRequest) {
     }
     if (videoUrl && videoUrl.length > 1000) return errorResponse(400, "URL demasiado larga")
 
-    // Portada del vídeo (dataURL 16:9 comprimido en el cliente)
+    // Portada del vídeo: dataURL heredado o URL interna del almacén
     let poster: string | null = null
     if (typeof body.poster === "string" && body.poster.trim()) {
       poster = body.poster.trim()
-      if (!poster.startsWith("data:image/")) {
+      const isDataUrl = poster.startsWith("data:image/")
+      const isMediaUrl =
+        poster.startsWith("/api/media/") && /^\/api\/media\/[A-Za-z0-9._/-]+$/.test(poster)
+      if (!isDataUrl && !isMediaUrl) {
         return errorResponse(400, "Portada inválida (debe ser una imagen)")
       }
-      if (poster.length > 500_000) {
+      if (poster.length > (isDataUrl ? 500_000 : 500)) {
         return errorResponse(400, "La portada es demasiado grande (máx ~400 KB)")
       }
     }

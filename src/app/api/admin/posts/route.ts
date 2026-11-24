@@ -3,7 +3,7 @@ import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { isAdminRequest } from "@/lib/admin"
 import { errorResponse, handleApiError } from "@/lib/api-helpers"
-import { feedInclude, toFeedPost } from "@/lib/feed"
+import { feedInclude, toFeedPostSigned } from "@/lib/feed"
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,10 +16,12 @@ export async function GET(req: NextRequest) {
     })
 
     return Response.json({
-      posts: posts.map((p) => ({
-        ...toFeedPost(p, null),
-        authorEmail: p.user.email,
-      })),
+      posts: await Promise.all(
+        posts.map(async (p) => ({
+          ...(await toFeedPostSigned(p, null)),
+          authorEmail: p.user.email,
+        }))
+      ),
     })
   } catch (e) {
     return handleApiError(e)

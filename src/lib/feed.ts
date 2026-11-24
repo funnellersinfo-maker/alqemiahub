@@ -5,6 +5,7 @@
 
 import type { Prisma } from "@prisma/client"
 import type { FeedPost } from "@/lib/types"
+import { signMediaUrl } from "@/lib/media-token"
 import { isVerifiedUser } from "@/lib/verified"
 
 /** Include estándar del muro: autor, contadores y likes (solo userId) */
@@ -43,4 +44,19 @@ export function toFeedPost(post: FeedPostWithInclude, sessionUserId: string | nu
     metricOrders: post.metricOrders ?? null,
     metricRoas: post.metricRoas ?? null,
   }
+}
+
+/**
+ * toFeedPost + firma de la imagen interna (posts/{uuid}.jpg en el
+ * almacén de medios). Las imágenes del muro ya NO viajan como
+ * dataURL gigantes: son archivos en R2 con enlace firmado → el
+ * feed pesa kilobytes, no megabytes. (Los dataURL heredados pasan
+ * tal cual.)
+ */
+export async function toFeedPostSigned(
+  post: FeedPostWithInclude,
+  sessionUserId: string | null
+): Promise<FeedPost> {
+  const base = toFeedPost(post, sessionUserId)
+  return { ...base, image: await signMediaUrl(base.image) }
 }

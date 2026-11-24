@@ -3,8 +3,16 @@
 // ============================================================
 // ADMIN — Subida de vídeos (archivo real, no enlaces)
 // Componente compartido: Vídeo del Muro (Ajustes) y lecciones
-// del Estudio. Sube el archivo en streaming con barra de
-// progreso (XHR) y muestra vista previa del vídeo actual.
+// del Estudio.
+//
+// v2 — DEFINITIVA:
+//   · Subida por TROCES de 8 MB con reintento por trozo → hasta
+//     1,5 GB por vídeo (antes el tope era 95 MB de una sola
+//     petición).
+//   · Los archivos viven en R2 (CDN) → reproducción fluida.
+//   · Portadas (poster) también como archivo en el almacén de
+//     medios (se dejan de guardar dataURLs gigantes en la BD →
+//     el hub carga mucho más rápido).
 // ============================================================
 
 import { useRef, useState, type ChangeEvent } from "react"
@@ -13,9 +21,11 @@ import { FileVideo, ImagePlus, Loader2, Trash2, UploadCloud } from "lucide-react
 
 import { Button } from "@/components/ui/button"
 import { SmartVideo } from "@/components/alqemia/smart-video"
-import { compressImage, MAX_UPLOAD_BYTES } from "@/lib/image-utils"
+import { compressImageToBlob, MAX_UPLOAD_BYTES } from "@/lib/image-utils"
+import { uploadVideoChunked, uploadImageAsAdmin } from "@/lib/media-client"
 
-const MAX_MB = 95
+/** Tope por vídeo: 1,5 GB (subida por trozos, sin límite de petición). */
+const MAX_MB = 1500
 const ACCEPTED_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime"])
 const EXT_FOR_TYPE: Record<string, string> = {
   "video/mp4": "mp4",
@@ -67,40 +77,8 @@ function MediaPreview({ url, title, poster }: { url: string; title: string; post
   )
 }
 
-/** Sube el archivo con XHR (progreso real) y la clave de admin. */
-function uploadMediaFile(
-  key: string,
-  file: File,
-  onProgress: (pct: number) => void
-): Promise<{ ok: boolean; url?: string; bytes?: number; error?: string }> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest()
-    xhr.open("POST", `/api/admin/media?key=${encodeURIComponent(key)}`)
-    xhr.setRequestHeader("x-admin-key", localStorage.getItem("alqemia-admin-key") ?? "")
-    xhr.setRequestHeader("Content-Type", file.type || "video/mp4")
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100))
-    }
-    xhr.onload = () => {
-      let data: { ok?: boolean; url?: string; error?: string } = {}
-      try {
-        data = JSON.parse(xhr.responseText) as typeof data
-      } catch {
-        /* respuesta sin JSON */
-      }
-      if (xhr.status >= 200 && xhr.status < 300 && data.ok) {
-        resolve({ ok: true, url: data.url, bytes: (data as { bytes?: number }).bytes })
-      } else {
-        reject(new Error(data.error ?? `Error ${xhr.status}`))
-      }
-    }
-    xhr.onerror = () => reject(new Error("Error de red al subir el vídeo"))
-    xhr.send(file)
-  })
-}
-
 // ============================================================
-// Campo de subida
+// Campo de subida de vídeo
 // ============================================================
 
 export function VideoUploadField({
@@ -115,9 +93,9 @@ export function VideoUploadField({
   scope: "muro" | "lesson"
   /** URL actual (interna /api/media/…, o heredada externa) o "" */
   value: string
-  /** Portada actual del vídeo (dataURL o "") para la vista previa */
+  /** Portada actual del vídeo para la vista previa */
   poster?: string | null
-  /** Se llama con la URL interna cuando la subida termina */
+  /** Se llama con la URL interna LIMPIA (sin firma) cuando la subida termina */
   onUploaded: (url: string) => void
   /** Se llama al pulsar "Quitar vídeo" */
   onRemoved: () => void
@@ -128,6 +106,7 @@ export function VideoUploadField({
   const inputRef = useRef<HTMLInputElement>(null)
   const [progress, setProgress] = useState<number | null>(null)
   const [fileName, setFileName] = useState("")
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null)
 
   async function onFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -139,19 +118,30 @@ export function VideoUploadField({
       return
     }
     if (file.size > MAX_MB * 1024 * 1024) {
-      toast.error(`El vídeo supera el máximo de ${MAX_MB} MB`)
+      toast.error(`El vídeo supera el máximo de ${MAX_MB >= 1000 ? `${(MAX_MB / 1000).toFixed(1).replace(".0", "")} GB` : `${MAX_MB} MB`}`)
       return
     }
     const ext = EXT_FOR_TYPE[type] ?? "mp4"
-    const key = scope === "muro" ? `muro/muro-video.${ext}` : `lessons/${crypto.randomUUID()}.${ext}`
+    // El muro usa claves VERSIONADAS: cada sustitución es un archivo
+    // nuevo → la CDN nunca sirve copias viejas.
+    const key =
+      scope === "muro"
+        ? `muro/muro-video-v${Date.now()}.${ext}`
+        : `lessons/${crypto.randomUUID()}.${ext}`
     setFileName(file.name)
     setProgress(0)
     try {
-      const res = await uploadMediaFile(key, file, setProgress)
-      if (res.url) {
-        onUploaded(res.url)
-        toast.success("Vídeo subido y listo")
-      }
+      const res = await uploadVideoChunked({
+        key,
+        file,
+        contentType: type,
+        onProgress: setProgress,
+      })
+      // Vista previa inmediata con el enlace firmado; a la BD se
+      // guarda la URL limpia (la firma la añade la API al leer).
+      setPreviewSrc(res.signed ?? res.url)
+      onUploaded(res.url)
+      toast.success("Vídeo subido y listo")
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "No se pudo subir el vídeo")
     } finally {
@@ -160,14 +150,14 @@ export function VideoUploadField({
   }
 
   const busy = progress !== null
-  const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MB`
+  const displayValue = previewSrc ?? value
 
   return (
     <div>
-      {value ? (
+      {displayValue ? (
         <>
           <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
-            <MediaPreview url={value} title="Vista previa del vídeo" poster={poster || null} />
+            <MediaPreview url={displayValue} title="Vista previa del vídeo" poster={poster || null} />
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
             <Button
@@ -194,7 +184,7 @@ export function VideoUploadField({
             </Button>
           </div>
           <p className="mt-1.5 text-[11px] text-zinc-500">
-            Para HD fluido exporta en 1280×720 o 1920×1080 · hasta {MAX_MB} MB
+            Para HD fluido exporta en 1280×720 o 1920×1080 · hasta 1,5 GB
           </p>
         </>
       ) : (
@@ -213,7 +203,7 @@ export function VideoUploadField({
           <span className="text-[11px] leading-relaxed text-zinc-500">
             Toca aquí y elige el archivo de tu teléfono o PC
             <br />
-            MP4, WebM o MOV · hasta {MAX_MB} MB
+            MP4, WebM o MOV · hasta 1,5 GB
             <br />
             <span className="text-gold-deep">Para HD fluido: exporta en 1280×720 o 1920×1080</span>
           </span>
@@ -238,7 +228,7 @@ export function VideoUploadField({
             />
           </div>
           <p className="mt-1.5 text-[10px] text-zinc-500">
-            Subiendo en streaming · no cierres esta pestaña
+            Subiendo por trozos con reintento automático · puedes seguir usando el panel
           </p>
         </div>
       )}
@@ -257,15 +247,18 @@ export function VideoUploadField({
 
 /** Extrae la clave de almacén de una URL interna (/api/media/…). */
 export function mediaKeyFromUrl(url: string): string {
-  return url.startsWith("/api/media/") ? url.slice("/api/media/".length) : ""
+  if (!url.startsWith("/api/media/")) return ""
+  return url.slice("/api/media/".length).split("?")[0]
 }
 
 // ============================================================
-// PORTADA DEL VÍDEO (imagen opcional que se ve antes de dar a
-// reproducir). Se recorta centrada a 16:9 y se comprime a JPEG.
+// PORTADA DEL VÍDEO (imagen que se ve antes de dar a
+// reproducir). Se recorta centrada a 16:9, se comprime a JPEG
+// y se sube como ARCHIVO al almacén de medios (R2) → el JSON
+// de las lecciones deja de llevar cientos de KB por portada.
 // ============================================================
 
-/** Límite ~400 KB tras comprimir (mismo tope que las portadas de programas). */
+/** Límite ~400 KB tras comprimir. */
 const MAX_POSTER_BYTES = 400 * 1024
 
 export function PosterUploadField({
@@ -275,16 +268,21 @@ export function PosterUploadField({
   disabled,
   /** Etiqueta del campo */
   label = "Portada del vídeo (opcional)",
+  /** El muro usa clave versionada (cada sustitución es un archivo nuevo) */
+  scope = "lesson",
 }: {
-  /** dataURL actual o "" */
+  /** URL (o dataURL heredado) actual o "" */
   value: string
-  onUploaded: (dataUrl: string) => void
+  /** Recibe la URL interna limpia de la portada subida */
+  onUploaded: (url: string) => void
   onRemoved: () => void
   disabled?: boolean
   label?: string
+  scope?: "lesson" | "muro"
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [processing, setProcessing] = useState(false)
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null)
 
   async function onFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -301,13 +299,18 @@ export function PosterUploadField({
     setProcessing(true)
     try {
       // Recorte centrado 16:9 + JPEG a ancho máx. 1280 (portada HD)
-      const dataUrl = await compressImage(file, { maxWidth: 1280, aspect: 16 / 9, quality: 0.82 })
-      const base64 = dataUrl.split(",")[1] ?? ""
-      if (Math.floor((base64.length * 3) / 4) > MAX_POSTER_BYTES) {
+      const blob = await compressImageToBlob(file, { maxWidth: 1280, aspect: 16 / 9, quality: 0.82 })
+      if (blob.size > MAX_POSTER_BYTES) {
         toast.error("La portada supera los 400 KB tras comprimirla. Prueba con una más ligera.")
         return
       }
-      onUploaded(dataUrl)
+      const key =
+        scope === "muro"
+          ? `muro/muro-poster-v${Date.now()}.jpg`
+          : `posters/${crypto.randomUUID()}.jpg`
+      const res = await uploadImageAsAdmin({ key, blob })
+      setPreviewSrc(res.signed ?? res.url)
+      onUploaded(res.url)
       toast.success("Portada lista")
     } catch {
       toast.error("No se pudo procesar la imagen")
@@ -315,6 +318,8 @@ export function PosterUploadField({
       setProcessing(false)
     }
   }
+
+  const displayValue = previewSrc ?? value
 
   return (
     <div>
@@ -350,10 +355,10 @@ export function PosterUploadField({
         className="mt-2 block w-full overflow-hidden rounded-xl border border-dashed border-zinc-700 bg-zinc-950/40 transition-all hover:border-gold/50 hover:bg-gold/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50 disabled:opacity-60"
         aria-label={label}
       >
-        {value ? (
+        {displayValue ? (
           <span className="relative block aspect-video w-full">
             <img
-              src={value}
+              src={displayValue}
               alt="Vista previa de la portada del vídeo"
               className="absolute inset-0 h-full w-full object-cover"
             />

@@ -66,3 +66,56 @@ export async function compressImage(
   ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, outW, outH)
   return canvas.toDataURL("image/jpeg", quality)
 }
+
+/**
+ * Igual que compressImage pero devuelve un Blob listo para subir
+ * al almacén de medios (sin dataURL intermedio → sin inflar base64).
+ */
+export async function compressImageToBlob(
+  file: File,
+  opts: { maxWidth?: number; aspect?: number | null; quality?: number } = {}
+): Promise<Blob> {
+  const { maxWidth = 1000, aspect = null, quality = 0.8 } = opts
+  const rawDataUrl = await readFileAsDataUrl(file)
+  const img = await loadImage(rawDataUrl)
+
+  let sx = 0
+  let sy = 0
+  let sWidth = img.naturalWidth
+  let sHeight = img.naturalHeight
+
+  if (aspect && aspect > 0) {
+    const target = aspect
+    const current = sWidth / sHeight
+    if (current > target) {
+      sWidth = Math.round(sHeight * target)
+      sx = Math.round((img.naturalWidth - sWidth) / 2)
+    } else {
+      sHeight = Math.round(sWidth / target)
+      sy = Math.round((img.naturalHeight - sHeight) / 2)
+    }
+  }
+
+  const outW = Math.min(maxWidth, sWidth)
+  const outH = Math.round((outW / sWidth) * sHeight)
+
+  const canvas = document.createElement("canvas")
+  canvas.width = outW
+  canvas.height = outH
+  const ctx = canvas.getContext("2d")
+  if (!ctx) throw new Error("Canvas no disponible")
+  ctx.fillStyle = "#0a0a0a"
+  ctx.fillRect(0, 0, outW, outH)
+  ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, outW, outH)
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob)
+        else reject(new Error("No se pudo comprimir la imagen"))
+      },
+      "image/jpeg",
+      quality
+    )
+  })
+}

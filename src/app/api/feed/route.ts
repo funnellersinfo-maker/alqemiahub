@@ -3,7 +3,7 @@ import { NextRequest } from "next/server"
 import type { Prisma } from "@prisma/client"
 import { db } from "@/lib/db"
 import { requireActiveUser, errorResponse, handleApiError } from "@/lib/api-helpers"
-import { feedInclude, toFeedPost } from "@/lib/feed"
+import { feedInclude, toFeedPostSigned } from "@/lib/feed"
 import type { FeedResponse } from "@/lib/types"
 
 export async function GET(req: NextRequest) {
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
     const nextCursor = hasMore ? (fetched[limit - 1]?.id ?? null) : null
 
     const body: FeedResponse = {
-      posts: page.map((p) => toFeedPost(p, user.id)),
+      posts: await Promise.all(page.map((p) => toFeedPostSigned(p, user.id))),
       nextCursor,
     }
     return Response.json(body)

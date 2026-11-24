@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
             title: l.title,
             description: l.description,
             videoUrl: await signMediaUrl(l.videoUrl),
-            poster: l.poster,
+            poster: await signMediaUrl(l.poster),
             durationMin: l.durationMin,
             order: l.order,
           }))

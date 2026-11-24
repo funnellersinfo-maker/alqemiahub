@@ -3,7 +3,7 @@ import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { requireActiveUser, errorResponse, handleApiError, ApiError } from "@/lib/api-helpers"
 import { awardXpFor } from "@/lib/gamification"
-import { toFeedPost, type FeedPostWithInclude } from "@/lib/feed"
+import { toFeedPostSigned, type FeedPostWithInclude } from "@/lib/feed"
 import type { XpEvent } from "@/lib/types"
 
 // Rangos válidos de las métricas de evidencia (reportes del período)
@@ -38,7 +38,14 @@ export async function POST(req: NextRequest) {
 
     let image: string | undefined
     if (typeof body.image === "string" && body.image.length > 0) {
-      if (!body.image.startsWith("data:image/") || body.image.length > 400_000) {
+      // Nueva vía: URL interna del almacén de medios (posts/…)
+      const isMediaUrl =
+        body.image.startsWith("/api/media/posts/") &&
+        /^\/api\/media\/[A-Za-z0-9._/-]+$/.test(body.image) &&
+        body.image.length <= 200
+      // Vía heredada: dataURL
+      const isDataUrl = body.image.startsWith("data:image/") && body.image.length <= 400_000
+      if (!isMediaUrl && !isDataUrl) {
         return errorResponse(400, "Imagen inválida o demasiado grande")
       }
       image = body.image
@@ -104,7 +111,7 @@ export async function POST(req: NextRequest) {
     }
 
     return Response.json(
-      { post: toFeedPost(postWithInclude, user.id), xp },
+      { post: await toFeedPostSigned(postWithInclude, user.id), xp },
       { status: 201 }
     )
   } catch (e) {

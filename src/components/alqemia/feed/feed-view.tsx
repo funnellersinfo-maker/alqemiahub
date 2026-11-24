@@ -104,7 +104,12 @@ function MuroVideo() {
           />
         </div>
       ) : isDirectVideo ? (
-        <SmartVideo src={url} poster={poster || null} videoClassName="max-h-[70vh]" />
+        <SmartVideo
+          src={url}
+          poster={poster || null}
+          videoClassName="max-h-[70vh]"
+          offline={url.startsWith("/api/media/")}
+        />
       ) : (
         <a
           href={url}

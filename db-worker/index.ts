@@ -245,16 +245,41 @@ CREATE TABLE IF NOT EXISTS "MediaChunk" (
 );
 `
 
+// v8 — SUBIDAS POR TROCESOS: sesión de subida multimedia (begin →
+// append de partes de 8 MB → complete) para superar el límite de
+// 100 MB por petición. Idempotente.
+const MIGRATION_V8_UPLOAD_SQL = `
+CREATE TABLE IF NOT EXISTS "MediaUpload" (
+    "key" TEXT NOT NULL PRIMARY KEY,
+    "contentType" TEXT NOT NULL DEFAULT 'video/mp4',
+    "size" INTEGER NOT NULL,
+    "parts" INTEGER NOT NULL DEFAULT 0,
+    "bytes" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+`
+
 // ============================================================
 // Medios — constantes y helpers
 // ============================================================
 
 /** Tamaño de cada trozo almacenado en SQLite (1 MiB). */
 const MEDIA_CHUNK = 1_048_576
-/** Tope por archivo (el límite de subida de Cloudflare son 100 MB). */
-const MAX_MEDIA_BYTES = 95 * 1024 * 1024
-/** Claves válidas: muro/muro-video.{mp4|webm|mov} o lessons/{id}.{ext} */
-const MEDIA_KEY_RE = /^(muro\/muro-video|lessons\/[a-z0-9-]{6,64})\.(mp4|webm|mov)$/
+/** Tope por archivo (la subida va por partes de 8 MB → sin límite de petición). */
+const MAX_MEDIA_BYTES = 1.5 * 1024 * 1024 * 1024
+/** Máximo por parte individual (alineado con el media worker). */
+const MAX_PART_BYTES = 16 * 1024 * 1024
+/**
+ * Claves válidas:
+ *   · Vídeos: muro/muro-video(-v{n}).{mp4|webm|mov}, lessons/{id}.{ext}
+ *   · Imágenes: muro/muro-poster(-v{n}), posters/{id}, posts/{id}
+ */
+const MEDIA_KEY_RE = new RegExp(
+  [
+    "^(muro/muro-video(-v\\d{1,15})?|lessons/[a-z0-9-]{6,64})\\.(mp4|webm|mov)$",
+    "^(muro/muro-poster(-v\\d{1,15})?|posters/[a-z0-9-]{6,64}|posts/[a-z0-9-]{6,64})\\.(jpe?g|png|webp)$",
+  ].join("|")
+)
 
 function mediaKeyOk(key: string): boolean {
   return MEDIA_KEY_RE.test(key)
@@ -263,7 +288,10 @@ function mediaKeyOk(key: string): boolean {
 function contentTypeFor(key: string): string {
   if (key.endsWith(".webm")) return "video/webm"
   if (key.endsWith(".mov")) return "video/quicktime"
-  return "video/mp4"
+  if (key.endsWith(".mp4")) return "video/mp4"
+  if (key.endsWith(".png")) return "image/png"
+  if (key.endsWith(".webp")) return "image/webp"
+  return "image/jpeg"
 }
 
 type MediaRange = { start: number; end: number }
@@ -403,6 +431,7 @@ export class HubDB extends DurableObject {
     execScript(this.sql, MIGRATION_V5_SQL)
     // v6: MEDIOS (vídeos del titular troceados en blobs)
     execScript(this.sql, MIGRATION_V6_MEDIA_SQL)
+    execScript(this.sql, MIGRATION_V8_UPLOAD_SQL)
     // v7: PORTADA (poster) propia de cada vídeo de lección. Idempotente:
     // si la columna ya existe, el ALTER falla y no se toca nada.
     try {
@@ -590,6 +619,157 @@ export class HubDB extends DurableObject {
     return json({ ok: false, error: "method-not-allowed" }, 405)
   }
 
+  // ============================================================
+  // MEDIOS v8 — Subida por TROCES (begin → part → complete)
+  // El navegador envía partes de ~8 MB (bajo el límite de 100 MB
+  // por petición) y el DO las va anexando a la secuencia de trozos
+  // de 1 MiB. Así un vídeo puede pesar hasta 1,5 GB sin que la
+  // petición individual se caiga.
+  // ============================================================
+
+  private keyFrom(url: URL, prefix: string): string {
+    return decodeURIComponent(url.pathname.slice(prefix.length))
+  }
+
+  private cleanupMedia(key: string): void {
+    this.sql.exec("DELETE FROM MediaChunk WHERE key = ?", key)
+    this.sql.exec("DELETE FROM MediaMeta WHERE key = ?", key)
+    this.sql.exec("DELETE FROM MediaUpload WHERE key = ?", key)
+    if (key.startsWith("muro/")) {
+      this.sql.exec("DELETE FROM MediaChunk WHERE key LIKE 'muro/%'")
+      this.sql.exec("DELETE FROM MediaMeta WHERE key LIKE 'muro/%'")
+      this.sql.exec("DELETE FROM MediaUpload WHERE key LIKE 'muro/%'")
+    }
+  }
+
+  private async handleMediaBegin(req: Request, url: URL): Promise<Response> {
+    const key = this.keyFrom(url, "/media-begin/")
+    if (!mediaKeyOk(key)) return json({ ok: false, error: "invalid-key" }, 400)
+    let contentType = "video/mp4"
+    let size = 0
+    try {
+      const body = (await req.json()) as { contentType?: string; size?: number }
+      contentType = body.contentType ?? contentType
+      size = Number(body.size ?? 0)
+    } catch {
+      return json({ ok: false, error: "bad-request" }, 400)
+    }
+    if (!Number.isFinite(size) || size <= 0) return json({ ok: false, error: "invalid-size" }, 400)
+    if (size > MAX_MEDIA_BYTES) return json({ ok: false, error: "too-large" }, 413)
+
+    // La sesión nueva reemplaza cualquier versión previa de la clave
+    this.cleanupMedia(key)
+    this.sql.exec(
+      'INSERT INTO MediaUpload (key, contentType, size, parts, bytes) VALUES (?, ?, ?, 0, 0)',
+      key,
+      contentType,
+      size
+    )
+    return json({ ok: true, uploadId: key })
+  }
+
+  private async handleMediaPart(req: Request, url: URL): Promise<Response> {
+    const key = this.keyFrom(url, "/media-part/")
+    if (!mediaKeyOk(key)) return json({ ok: false, error: "invalid-key" }, 400)
+    if (!req.body) return json({ ok: false, error: "empty-body" }, 400)
+
+    const row = this.sql
+      .exec("SELECT parts, bytes, size FROM MediaUpload WHERE key = ?", key)
+      .toArray()[0] as { parts: number; bytes: number; size: number } | undefined
+    if (!row) return json({ ok: false, error: "upload-not-found" }, 404)
+
+    const fail = (status: number, error: string) => {
+      this.cleanupMedia(key)
+      return json({ ok: false, error }, status)
+    }
+
+    let idx = row.parts
+    let total = 0
+    let buf = new Uint8Array(MEDIA_CHUNK)
+    let bufLen = 0
+
+    const flush = (final: Uint8Array) => {
+      this.sql.exec("INSERT INTO MediaChunk (key, idx, data) VALUES (?, ?, ?)", key, idx, final)
+      idx++
+    }
+
+    try {
+      const reader = req.body.getReader()
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        if (!value || value.byteLength === 0) continue
+        total += value.byteLength
+        if (row.bytes + total > row.size) throw new Error("size-exceeded")
+        if (row.bytes + total > MAX_MEDIA_BYTES) throw new Error("too-large")
+        let srcOff = 0
+        while (srcOff < value.byteLength) {
+          const copy = Math.min(buf.length - bufLen, value.byteLength - srcOff)
+          buf.set(value.subarray(srcOff, srcOff + copy), bufLen)
+          bufLen += copy
+          srcOff += copy
+          if (bufLen === buf.length) {
+            flush(buf.slice())
+            buf = new Uint8Array(MEDIA_CHUNK)
+            bufLen = 0
+          }
+        }
+      }
+      if (bufLen > 0) flush(buf.slice(0, bufLen))
+      if (total === 0) throw new Error("empty")
+      this.sql.exec(
+        "UPDATE MediaUpload SET parts = ?, bytes = ? WHERE key = ?",
+        idx,
+        row.bytes + total,
+        key
+      )
+      return json({ ok: true, partBytes: total, totalBytes: row.bytes + total })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      const status = msg === "too-large" ? 413 : msg === "size-exceeded" ? 400 : 500
+      return fail(status, msg === "size-exceeded" ? "size-exceeded" : `part-failed: ${msg}`)
+    }
+  }
+
+  private async handleMediaComplete(req: Request, url: URL): Promise<Response> {
+    const key = this.keyFrom(url, "/media-complete/")
+    if (!mediaKeyOk(key)) return json({ ok: false, error: "invalid-key" }, 400)
+
+    const row = this.sql
+      .exec("SELECT parts, bytes, contentType, size FROM MediaUpload WHERE key = ?", key)
+      .toArray()[0] as
+      | { parts: number; bytes: number; contentType: string; size: number }
+      | undefined
+    if (!row) {
+      // Idempotente: si ya se completó antes, responder ok
+      const meta = this.sql
+        .exec("SELECT size FROM MediaMeta WHERE key = ?", key)
+        .toArray()[0] as { size: number } | undefined
+      if (meta) return json({ ok: true, bytes: meta.size, alreadyDone: true })
+      return json({ ok: false, error: "upload-not-found" }, 404)
+    }
+    if (row.bytes <= 0) {
+      this.cleanupMedia(key)
+      return json({ ok: false, error: "empty-upload" }, 400)
+    }
+
+    this.sql.exec(
+      'INSERT INTO MediaMeta (key, contentType, size) VALUES (?, ?, ?)',
+      key,
+      row.contentType,
+      row.bytes
+    )
+    this.sql.exec("DELETE FROM MediaUpload WHERE key = ?", key)
+    return json({ ok: true, bytes: row.bytes, chunks: row.parts })
+  }
+
+  private async handleMediaAbort(req: Request, url: URL): Promise<Response> {
+    const key = this.keyFrom(url, "/media-abort/")
+    if (!mediaKeyOk(key)) return json({ ok: false, error: "invalid-key" }, 400)
+    this.cleanupMedia(key)
+    return json({ ok: true })
+  }
+
   async fetch(req: Request): Promise<Response> {
     const url = new URL(req.url)
 
@@ -604,6 +784,22 @@ export class HubDB extends DurableObject {
     // la entrada pública del worker NO enruta /media salvo que haya
     // DB_ADMIN_KEY configurada y coincida la cabecera x-db-key).
     // ============================================================
+    if (url.pathname.startsWith("/media-begin/") && req.method === "POST") {
+      this.ensureInit()
+      return this.handleMediaBegin(req, url)
+    }
+    if (url.pathname.startsWith("/media-part/") && req.method === "PUT") {
+      this.ensureInit()
+      return this.handleMediaPart(req, url)
+    }
+    if (url.pathname.startsWith("/media-complete/") && req.method === "POST") {
+      this.ensureInit()
+      return this.handleMediaComplete(req, url)
+    }
+    if (url.pathname.startsWith("/media-abort/") && req.method === "POST") {
+      this.ensureInit()
+      return this.handleMediaAbort(req, url)
+    }
     if (url.pathname.startsWith("/media/")) {
       this.ensureInit()
       return this.handleMedia(req, url)

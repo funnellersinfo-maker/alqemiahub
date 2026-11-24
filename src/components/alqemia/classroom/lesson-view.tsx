@@ -105,6 +105,8 @@ export function LessonView({
             key={lesson.id}
             src={lesson.videoUrl}
             poster={lesson.poster ?? course.cover}
+            // Bóveda offline: descargar para ver sin internet
+            offline={lesson.videoUrl.startsWith("/api/media/")}
           />
         ) : (
           <div className="flex aspect-video items-center justify-center bg-zinc-950 text-sm text-zinc-500">

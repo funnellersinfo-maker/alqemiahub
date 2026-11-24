@@ -8,7 +8,7 @@ import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { isAdminRequest } from "@/lib/admin"
 import { errorResponse, handleApiError, ApiError } from "@/lib/api-helpers"
-import { MEDIA_KEY_RE, deleteMedia } from "@/lib/media-store"
+import { deleteMedia } from "@/lib/media-store"
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -47,14 +47,18 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     if (typeof body.durationMin === "number" && Number.isFinite(body.durationMin)) {
       data.durationMin = Math.max(1, Math.min(600, Math.round(body.durationMin)))
     }
-    // Portada del vídeo: null para quitarla, dataURL para ponerla
+    // Portada del vídeo: null para quitarla; dataURL heredado o URL
+    // interna del almacén de medios para ponerla
     if (body.poster === null || typeof body.poster === "string") {
       if (typeof body.poster === "string" && body.poster.trim()) {
         const poster = body.poster.trim()
-        if (!poster.startsWith("data:image/")) {
+        const isDataUrl = poster.startsWith("data:image/")
+        const isMediaUrl =
+          poster.startsWith("/api/media/") && /^\/api\/media\/[A-Za-z0-9._/-]+$/.test(poster)
+        if (!isDataUrl && !isMediaUrl) {
           return errorResponse(400, "Portada inválida (debe ser una imagen)")
         }
-        if (poster.length > 500_000) {
+        if (poster.length > (isDataUrl ? 500_000 : 500)) {
           return errorResponse(400, "La portada es demasiado grande (máx ~400 KB)")
         }
         data.poster = poster
@@ -84,11 +88,15 @@ export async function DELETE(req: NextRequest, ctx: Ctx) {
 
     await db.lesson.delete({ where: { id } })
 
-    // Borrar también el archivo de vídeo subido (si era interno)
-    if (lesson.videoUrl?.startsWith("/api/media/")) {
-      const key = lesson.videoUrl.slice("/api/media/".length)
-      if (MEDIA_KEY_RE.test(key)) await deleteMedia(key).catch(() => {})
+    // Borrar también los archivos subidos (vídeo y portada) si eran internos
+    const mediaUrlToKey = (url?: string | null): string => {
+      if (!url?.startsWith("/api/media/")) return ""
+      return url.slice("/api/media/".length).split("?")[0]
     }
+    const videoKey = mediaUrlToKey(lesson.videoUrl)
+    if (videoKey) await deleteMedia(videoKey).catch(() => {})
+    const posterKey = mediaUrlToKey(lesson.poster)
+    if (posterKey) await deleteMedia(posterKey).catch(() => {})
     return Response.json({ ok: true })
   } catch (e) {
     return handleApiError(e)

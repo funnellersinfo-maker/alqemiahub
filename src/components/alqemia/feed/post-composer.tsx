@@ -15,66 +15,21 @@ import { AlqemiaLetters } from "@/components/alqemia/fx/alqemia-lettering"
 import { UserAvatar } from "@/components/alqemia/avatar"
 import { useMe } from "@/hooks/use-me"
 import { celebrateXp } from "@/lib/store"
+import { compressImageToBlob } from "@/lib/image-utils"
+import { uploadMemberImage } from "@/lib/media-client"
 import { cn } from "@/lib/utils"
 import type { FeedPost, XpEvent } from "@/lib/types"
 
 const MAX_LENGTH = 2000
 const SOFT_LIMIT = 1800
-const MAX_FILE_BYTES = 8 * 1024 * 1024 // 8 MB
-const MAX_DATA_URL_LENGTH = 380_000
+const MAX_FILE_BYTES = 8 * 1024 * 1024 // 8 MB de archivo original
 const MAX_SIDE_PX = 720
+const MAX_IMAGE_BYTES = 380 * 1024 // 380 KB tras comprimir
 
 // Rangos de las métricas de evidencia (espejo de la validación del servidor)
 const MAX_REVENUE = 10_000_000 // USD
 const MAX_ORDERS = 100_000
 const MAX_ROAS = 100
-
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result))
-    reader.onerror = () => reject(new Error("file-read-error"))
-    reader.readAsDataURL(file)
-  })
-}
-
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = document.createElement("img")
-    img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error("image-decode-error"))
-    img.src = src
-  })
-}
-
-/**
- * Redimensiona la imagen con canvas (máx. 720px por lado, proporcional)
- * y la codifica como JPEG dataURL acotado para viajar en el POST.
- * Devuelve null si la imagen sigue siendo demasiado grande.
- */
-async function compressToDataUrl(file: File): Promise<string | null> {
-  const dataUrl = await readFileAsDataUrl(file)
-  const img = await loadImage(dataUrl)
-  const scale = Math.min(1, MAX_SIDE_PX / Math.max(img.naturalWidth, img.naturalHeight))
-  const width = Math.max(1, Math.round(img.naturalWidth * scale))
-  const height = Math.max(1, Math.round(img.naturalHeight * scale))
-
-  const canvas = document.createElement("canvas")
-  canvas.width = width
-  canvas.height = height
-  const ctx = canvas.getContext("2d")
-  if (!ctx) return null
-  ctx.fillStyle = "#ffffff"
-  ctx.fillRect(0, 0, width, height)
-  ctx.drawImage(img, 0, 0, width, height)
-
-  let out = canvas.toDataURL("image/jpeg", 0.8)
-  if (out.length > MAX_DATA_URL_LENGTH) {
-    out = canvas.toDataURL("image/jpeg", 0.6)
-  }
-  if (out.length > MAX_DATA_URL_LENGTH) return null
-  return out
-}
 
 type PostPayload = {
   content: string
@@ -88,7 +43,8 @@ export function PostComposer() {
   const queryClient = useQueryClient()
   const me = useMe()
   const [content, setContent] = useState("")
-  const [imageDataURL, setImageDataURL] = useState<string | null>(null)
+  const [imageURL, setImageURL] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
   const [posting, setPosting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -113,15 +69,23 @@ export function PostComposer() {
       toast.error("La imagen es demasiado grande")
       return
     }
+    setUploading(true)
     try {
-      const compressed = await compressToDataUrl(file)
-      if (!compressed) {
+      // Comprimir y subir como ARCHIVO al almacén de medios (R2):
+      // el post viaja en JSON ligero (una URL) y el muro carga al
+      // instante — sin megabytes de base64 en el feed.
+      const blob = await compressImageToBlob(file, { maxWidth: MAX_SIDE_PX, quality: 0.8 })
+      if (blob.size > MAX_IMAGE_BYTES) {
         toast.error("La imagen es demasiado grande")
         return
       }
-      setImageDataURL(compressed)
+      const key = `posts/${crypto.randomUUID()}.jpg`
+      const res = await uploadMemberImage({ key, blob })
+      setImageURL(res.signed ?? res.url)
     } catch {
-      toast.error("No se pudo procesar la imagen")
+      toast.error("No se pudo subir la imagen")
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -160,7 +124,7 @@ export function PostComposer() {
       }
 
       const payload: PostPayload = { content: text }
-      if (imageDataURL) payload.image = imageDataURL
+      if (imageURL) payload.image = imageURL.split("?")[0]!
       if (revenue !== null && revenue > 0) {
         payload.metricRevenue = Math.round(revenue * 100) / 100
       }
@@ -178,7 +142,7 @@ export function PostComposer() {
         return
       }
       setContent("")
-      setImageDataURL(null)
+      setImageURL(null)
       setRevenueInput("")
       setOrdersInput("")
       setRoasInput("")
@@ -215,18 +179,24 @@ export function PostComposer() {
           />
         </div>
 
-        {imageDataURL && (
+        {imageURL && (
           <div className="relative mt-3 overflow-hidden rounded-xl border border-zinc-800">
-            { }
-            <img src={imageDataURL} alt="Adjunto" className="max-h-72 w-full object-cover" />
+            <img src={imageURL} alt="Adjunto" className="max-h-72 w-full object-cover" />
             <button
               type="button"
               aria-label="Quitar imagen"
-              onClick={() => setImageDataURL(null)}
+              onClick={() => setImageURL(null)}
               className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-zinc-950/60 text-white transition-colors hover:bg-zinc-950/80"
             >
               <X className="h-4 w-4" aria-hidden />
             </button>
+          </div>
+        )}
+
+        {uploading && (
+          <div className="mt-3 flex items-center gap-2 rounded-xl border border-gold/25 bg-gold/5 px-3 py-2 text-xs text-zinc-300">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-gold" aria-hidden />
+            Subiendo imagen…
           </div>
         )}
 
@@ -326,8 +296,9 @@ export function PostComposer() {
             size="sm"
             className="text-zinc-500 hover:text-zinc-100"
             onClick={() => fileInputRef.current?.click()}
+            disabled={uploading || posting}
           >
-            <ImageIcon aria-hidden />
+            {uploading ? <Loader2 className="animate-spin" aria-hidden /> : <ImageIcon aria-hidden />}
             Foto
           </Button>
           <div className="flex items-center gap-3">

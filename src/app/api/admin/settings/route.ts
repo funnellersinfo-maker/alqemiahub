@@ -43,11 +43,14 @@ export async function PUT(req: NextRequest) {
 
     if (!/^[\w.\-]{2,64}$/.test(key)) return errorResponse(400, "Clave inválida")
     if (POSTER_KEYS.has(key)) {
-      // Portada del vídeo del muro: dataURL de imagen comprimida en cliente
-      if (value && !value.startsWith("data:image/")) {
+      // Portada del vídeo del muro: dataURL heredado O URL interna
+      // del almacén de medios (la nueva vía — sin base64 en la BD)
+      const isDataUrl = value.startsWith("data:image/")
+      const isMediaUrl = /^\/api\/media\/[A-Za-z0-9._/-]+$/.test(value)
+      if (value && !isDataUrl && !isMediaUrl) {
         return errorResponse(400, "La portada debe ser una imagen")
       }
-      if (value.length > MAX_POSTER_VALUE) {
+      if (value.length > (isDataUrl ? MAX_POSTER_VALUE : 500)) {
         return errorResponse(400, "La portada es demasiado grande (máx ~400 KB)")
       }
     } else if (value.length > MAX_VALUE) {

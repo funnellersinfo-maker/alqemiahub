@@ -13,7 +13,8 @@
     ]
   },
   "vars": {
-    "MEDIA_SIGNING_KEY": "813ec0534426a3c8fff6dc3c2213d348c879578114d5c115472406da9230b932"
+    "MEDIA_SIGNING_KEY": "813ec0534426a3c8fff6dc3c2213d348c879578114d5c115472406da9230b932",
+    "ADMIN_ACCESS_KEY": "ALQEMIA-ADMIN-2025"
   },
   "observability": {
     "enabled": true

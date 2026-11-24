@@ -1,24 +1,33 @@
 // ============================================================
-// MEDIA STORE — Almacenamiento de vídeos del titular (muro y
-// lecciones) multi-entorno:
-//   · Cloudflare (producción): Durable Object alqemia-db vía
-//     service binding (tabla MediaChunk en blobs de 1 MiB,
-//     streaming con soporte Range).
+// MEDIA STORE — Almacenamiento de medios (multi-entorno)
+//   · Cloudflare (producción): el worker alqemia-media sirve y
+//     sube todo desde R2 a través del portal — este módulo
+//     queda como vía de LEGADO (vídeos antiguos en el DO) y
+//     como almacén local de DESARROLLO (.data/media).
 //   · Local / sandbox: archivos en disco (.data/media).
 // ============================================================
 
 import { getCloudflareContext } from "@opennextjs/cloudflare"
 
-/** Tope por archivo (el límite de subida de Cloudflare son 100 MB). */
+/** Tope por archivo en la vía de subida antigua (un solo PUT). */
 export const MAX_MEDIA_BYTES = 95 * 1024 * 1024
-/** Claves válidas: muro/muro-video.{mp4|webm|mov} o lessons/{id}.{ext} */
-export const MEDIA_KEY_RE = /^(muro\/muro-video|lessons\/[a-z0-9-]{6,64})\.(mp4|webm|mov)$/
+/**
+ * Claves válidas:
+ *   · Vídeos: muro/muro-video(-v{n}).{mp4|webm|mov} y lessons/{id}.{ext}
+ *   · Imágenes: muro/muro-poster(-v{n}), posters/{id}, posts/{id}
+ */
+export const MEDIA_KEY_RE = new RegExp(
+  [
+    "^(muro/muro-video(-v\\d{1,15})?|lessons/[a-z0-9-]{6,64})\\.(mp4|webm|mov)$",
+    "^(muro/muro-poster(-v\\d{1,15})?|posters/[a-z0-9-]{6,64}|posts/[a-z0-9-]{6,64})\\.(jpe?g|png|webp)$",
+  ].join("|")
+)
 
 /** URL pública con la que se sirve un medio (ruta de la app). */
 export const mediaUrl = (key: string) => `/api/media/${key}`
 
 // ------------------------------------------------------------
-// Namespace del Durable Object (mismo patrón que db.ts)
+// Namespace del Durable Object (legado) + service binding MEDIA
 // ------------------------------------------------------------
 
 type MediaStub = { fetch: (input: string, init?: RequestInit) => Promise<Response> }
@@ -26,6 +35,7 @@ type MediaNamespace = {
   idFromName: (name: string) => unknown
   get: (id: unknown) => MediaStub
 }
+type MediaService = { fetch: (input: string, init?: RequestInit) => Promise<Response> }
 
 function getMediaNamespace(): MediaNamespace | null {
   const manual = (globalThis as unknown as { __ALQEMIA_CF_ENV__?: { HUB_DB?: MediaNamespace } })
@@ -34,6 +44,20 @@ function getMediaNamespace(): MediaNamespace | null {
   try {
     const ctx = getCloudflareContext() as { env?: { HUB_DB?: MediaNamespace } } | null
     if (ctx?.env?.HUB_DB) return ctx.env.HUB_DB
+  } catch {
+    // Sin contexto de Cloudflare (desarrollo local / build)
+  }
+  return null
+}
+
+/** Service binding al worker alqemia-media (borrados desde el servidor). */
+function getMediaService(): MediaService | null {
+  const manual = (globalThis as unknown as { __ALQEMIA_CF_ENV__?: { MEDIA?: MediaService } })
+    .__ALQEMIA_CF_ENV__?.MEDIA
+  if (manual) return manual
+  try {
+    const ctx = getCloudflareContext() as { env?: { MEDIA?: MediaService } } | null
+    if (ctx?.env?.MEDIA) return ctx.env.MEDIA
   } catch {
     // Sin contexto de Cloudflare (desarrollo local / build)
   }
@@ -115,15 +139,20 @@ function parseRangeHeader(
 function contentTypeForKey(key: string): string {
   if (key.endsWith(".webm")) return "video/webm"
   if (key.endsWith(".mov")) return "video/quicktime"
-  return "video/mp4"
+  if (key.endsWith(".mp4")) return "video/mp4"
+  if (key.endsWith(".png")) return "image/png"
+  if (key.endsWith(".webp")) return "image/webp"
+  return "image/jpeg"
 }
 
 // ------------------------------------------------------------
-// API pública del almacén
+// API pública del almacén (vía legado / desarrollo)
 // ------------------------------------------------------------
 
 /**
  * Guarda un vídeo (streaming, sin buffer completo en memoria).
+ * Vía ANTIGUA: en producción las subidas van por trozos al
+ * worker alqemia-media (R2); esto queda para desarrollo local.
  * Lanza Error("too-large") si supera el tope.
  */
 export async function putMedia(
@@ -247,8 +276,26 @@ export async function getMediaResponse(key: string, rangeHeader: string | null):
   return new Response(stream, { status: range ? 206 : 200, headers })
 }
 
-/** Elimina un medio (si existe). */
+/**
+ * Elimina un medio (si existe). En producción lo borra el worker
+ * alqemia-media vía service binding (R2 + legado DO); en desarrollo
+ * borra el archivo local.
+ */
 export async function deleteMedia(key: string): Promise<void> {
+  const service = getMediaService()
+  if (service) {
+    const res = await service.fetch(
+      `https://alqemia-media/api/media/admin/delete?key=${encodeURIComponent(key)}`,
+      {
+        method: "DELETE",
+        headers: { "x-admin-key": process.env.ADMIN_ACCESS_KEY ?? "ALQEMIA-ADMIN-2025" },
+      }
+    )
+    if (!res.ok && res.status !== 404) {
+      throw new Error(`media-delete-${res.status}`)
+    }
+    return
+  }
   const ns = getMediaNamespace()
   if (ns) {
     const res = await mediaDoFetch(key, { method: "DELETE" })

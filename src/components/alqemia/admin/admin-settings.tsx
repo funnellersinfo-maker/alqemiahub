@@ -123,6 +123,32 @@ function MuroVideoSection({ value, poster }: { value: string; poster: string }) 
     onError: (err: Error) => toast.error(err.message),
   })
 
+  const removePosterMutation = useMutation({
+    mutationFn: async () => {
+      // Borrar el archivo de la portada anterior (si era interno)
+      const oldKey = mediaKeyFromUrl(poster)
+      if (oldKey) {
+        try {
+          await adminFetch<{ ok: boolean }>(`/api/admin/media?key=${encodeURIComponent(oldKey)}`, {
+            method: "DELETE",
+          })
+        } catch {
+          /* el ajuste se quita igualmente */
+        }
+      }
+      return adminFetch<{ ok: boolean }>("/api/admin/settings", {
+        method: "PUT",
+        body: JSON.stringify({ key: "muro_video_poster", value: "" }),
+      })
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin-settings"] })
+      void queryClient.invalidateQueries({ queryKey: ["muro-video"] })
+      toast.success("Portada quitada")
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
   const removeMutation = useMutation({
     mutationFn: async () => {
       // 1) Borrar el archivo subido (si el valor actual es interno)
@@ -147,7 +173,8 @@ function MuroVideoSection({ value, poster }: { value: string; poster: string }) 
     onError: (err: Error) => toast.error(err.message),
   })
 
-  const saving = saveMutation.isPending || removeMutation.isPending
+  const saving =
+    saveMutation.isPending || removeMutation.isPending || savePosterMutation.isPending
 
   return (
     <Card className="gap-0 rounded-2xl p-4 sm:p-5">
@@ -176,9 +203,10 @@ function MuroVideoSection({ value, poster }: { value: string; poster: string }) 
           <PosterUploadField
             value={poster}
             onUploaded={(p) => savePosterMutation.mutate(p)}
-            onRemoved={() => savePosterMutation.mutate("")}
-            disabled={saving || savePosterMutation.isPending}
+            onRemoved={() => removePosterMutation.mutate()}
+            disabled={saving || savePosterMutation.isPending || removePosterMutation.isPending}
             label="Portada del vídeo del muro (opcional)"
+            scope="muro"
           />
         </div>
       ) : null}
