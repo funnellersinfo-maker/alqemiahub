@@ -1,0 +1,21 @@
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "alqemia-media",
+  "main": "index.ts",
+  "compatibility_date": "2026-10-01",
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "HUB_DB",
+        "class_name": "HubDB",
+        "script_name": "alqemia-db"
+      }
+    ]
+  },
+  "vars": {
+    "MEDIA_SIGNING_KEY": "813ec0534426a3c8fff6dc3c2213d348c879578114d5c115472406da9230b932"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

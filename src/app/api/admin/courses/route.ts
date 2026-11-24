@@ -10,6 +10,7 @@ import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { isAdminRequest } from "@/lib/admin"
 import { errorResponse, handleApiError, ApiError } from "@/lib/api-helpers"
+import { signMediaUrl } from "@/lib/media-token"
 
 export async function GET(req: NextRequest) {
   try {
@@ -20,8 +21,10 @@ export async function GET(req: NextRequest) {
       include: { lessons: { orderBy: { order: "asc" } } },
     })
 
-    return Response.json({
-      courses: courses.map((c) => ({
+    // Las URLs de vídeo interno se firman (HMAC) para que el media
+    // worker (relé ligero) pueda autenticarlas sin sesión Node.js.
+    const out = await Promise.all(
+      courses.map(async (c) => ({
         id: c.id,
         slug: c.slug,
         title: c.title,
@@ -30,18 +33,22 @@ export async function GET(req: NextRequest) {
         cover: c.cover,
         order: c.order,
         createdAt: c.createdAt.toISOString(),
-        lessons: c.lessons.map((l) => ({
-          id: l.id,
-          courseId: l.courseId,
-          title: l.title,
-          description: l.description,
-          videoUrl: l.videoUrl,
-          poster: l.poster,
-          durationMin: l.durationMin,
-          order: l.order,
-        })),
-      })),
-    })
+        lessons: await Promise.all(
+          c.lessons.map(async (l) => ({
+            id: l.id,
+            courseId: l.courseId,
+            title: l.title,
+            description: l.description,
+            videoUrl: await signMediaUrl(l.videoUrl),
+            poster: l.poster,
+            durationMin: l.durationMin,
+            order: l.order,
+          }))
+        ),
+      }))
+    )
+
+    return Response.json({ courses: out })
   } catch (e) {
     return handleApiError(e)
   }

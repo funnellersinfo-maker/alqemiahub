@@ -2,6 +2,7 @@
 import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { requireActiveUser, errorResponse, handleApiError } from "@/lib/api-helpers"
+import { signMediaUrl } from "@/lib/media-token"
 import type { CourseDetail } from "@/lib/types"
 
 export async function GET(
@@ -25,6 +26,21 @@ export async function GET(
     })
     const completedSet = new Set(progressRows.map((p) => p.lessonId))
 
+    // Las URLs de vídeo interno se firman (HMAC) para que el media
+    // worker (relé ligero) pueda autenticarlas sin sesión Node.js.
+    const lessons = await Promise.all(
+      course.lessons.map(async (l) => ({
+        id: l.id,
+        title: l.title,
+        description: l.description,
+        videoUrl: await signMediaUrl(l.videoUrl),
+        poster: l.poster,
+        durationMin: l.durationMin,
+        order: l.order,
+        completed: completedSet.has(l.id),
+      }))
+    )
+
     const detail: CourseDetail = {
       id: course.id,
       slug: course.slug,
@@ -35,16 +51,7 @@ export async function GET(
       totalLessons: course.lessons.length,
       totalMinutes: course.lessons.reduce((sum, l) => sum + l.durationMin, 0),
       completedLessons: course.lessons.filter((l) => completedSet.has(l.id)).length,
-      lessons: course.lessons.map((l) => ({
-        id: l.id,
-        title: l.title,
-        description: l.description,
-        videoUrl: l.videoUrl,
-        poster: l.poster,
-        durationMin: l.durationMin,
-        order: l.order,
-        completed: completedSet.has(l.id),
-      })),
+      lessons,
     }
 
     return Response.json({ course: detail })

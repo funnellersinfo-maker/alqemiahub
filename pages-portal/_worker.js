@@ -5,6 +5,13 @@
 // proxy inverso hacia el Worker de OpenNext:
 //   https://alqemiahub.mastershop-funnellers.workers.dev
 //
+// VÍDEOS (/api/media/*): se enrutan al worker de relé dedicado
+// alqemia-media (workerd puro, sin Node.js). Servir vídeos grandes
+// a través de OpenNext excedía el límite de CPU del Worker (Error
+// 1102) y la página se caía. El relé ligero transmite los bytes
+// del Durable Object con coste de CPU casi nulo → HD fluido con
+// cualquier tamaño de vídeo.
+//
 // Así la barra de direcciones del usuario SIEMPRE permanece en
 // el enlace limpio (pages.dev) y el dominio interno de workers.dev
 // deja de exponerse (además evita bloqueos de operadores móviles
@@ -20,12 +27,14 @@
 
 const UPSTREAM_ORIGIN = "https://alqemiahub.mastershop-funnellers.workers.dev";
 const UPSTREAM_HOST = "alqemiahub.mastershop-funnellers.workers.dev";
+// Worker de relé de vídeos (firma HMAC ?e=&s= en la propia URL)
+const MEDIA_HOST = "alqemia-media.mastershop-funnellers.workers.dev";
 const PORTAL_ORIGIN = "https://alqemiahub.pages.dev";
 
-function toUpstreamUrl(url) {
+function toUpstreamUrl(url, upstreamHost) {
   const target = new URL(url);
   target.protocol = "https:";
-  target.host = UPSTREAM_HOST;
+  target.host = upstreamHost;
   target.port = "";
   return target;
 }
@@ -46,8 +55,10 @@ const portalWorker = {
 
     const method = request.method.toUpperCase();
     const canRetry = method === "GET" || method === "HEAD"; // sin cuerpo → reintentable
+    // Vídeos → media worker; resto → OpenNext
+    const upstreamHost = url.pathname.startsWith("/api/media/") ? MEDIA_HOST : UPSTREAM_HOST;
     const buildUpstream = () =>
-      new Request(toUpstreamUrl(url), {
+      new Request(toUpstreamUrl(url, upstreamHost), {
         method: request.method,
         headers,
         // GET/HEAD no llevan cuerpo; el resto se transmite en streaming
@@ -100,7 +111,10 @@ const portalWorker = {
     }
     if (!out) {
       out = new Response(noBodyStatus ? null : res.body, res);
-      out.headers.delete("content-length");
+      // En respuestas SIN CUERPO (204/205/304/HEAD) el Content-Length
+      // es metadato válido (tamaño del recurso) y SE conserva. Solo se
+      // elimina para cuerpos en streaming de longitud desconocida.
+      if (!noBodyStatus) out.headers.delete("content-length");
     }
     if (out.headers.has("content-encoding")) out.headers.delete("content-encoding");
 

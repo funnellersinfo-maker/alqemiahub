@@ -9,6 +9,7 @@ import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { isAdminRequest } from "@/lib/admin"
 import { errorResponse, handleApiError, ApiError } from "@/lib/api-helpers"
+import { signMediaUrl } from "@/lib/media-token"
 
 const MAX_VALUE = 2000 // caracteres por valor
 // Las portadas de vídeo (dataURL 16:9 ~400 KB) necesitan más espacio
@@ -19,7 +20,15 @@ export async function GET(req: NextRequest) {
   try {
     if (!(await isAdminRequest(req))) throw new ApiError(401, "Acceso restringido al titular")
     const settings = await db.setting.findMany({ orderBy: { key: "asc" } })
-    return Response.json({ settings })
+    // El vídeo del muro se devuelve firmado (HMAC) para que el media
+    // worker autentique la vista previa sin sesión Node.js.
+    const out = await Promise.all(
+      settings.map(async (s) => ({
+        ...s,
+        value: s.value.startsWith("/api/media/") ? await signMediaUrl(s.value) : s.value,
+      }))
+    )
+    return Response.json({ settings: out })
   } catch (e) {
     return handleApiError(e)
   }

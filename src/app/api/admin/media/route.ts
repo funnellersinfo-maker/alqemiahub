@@ -14,6 +14,7 @@ import { NextRequest } from "next/server"
 import { isAdminRequest } from "@/lib/admin"
 import { errorResponse, handleApiError, ApiError } from "@/lib/api-helpers"
 import { MEDIA_KEY_RE, MAX_MEDIA_BYTES, mediaUrl, putMedia, deleteMedia } from "@/lib/media-store"
+import { signMediaUrl } from "@/lib/media-token"
 
 const ACCEPTED_TYPES = /^(video\/mp4|video\/webm|video\/quicktime)(;.*)?$/i
 
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
       throw e
     }
 
-    return Response.json({ ok: true, url: mediaUrl(key), bytes: length })
+    return Response.json({ ok: true, url: await signMediaUrl(mediaUrl(key)), bytes: length })
   } catch (e) {
     return handleApiError(e)
   }
